@@ -39,7 +39,7 @@ public class ImgurTest {
 
     public static java.util.List<java.lang.String> fetchImgurGallery(String url) throws IOException {
         url = imgurUrlToApiUrl(url);
-        BetterLoadingScreen.log.trace("sendget func");
+        //BetterLoadingScreen.log.trace("sendget func");
         final List<String> images = new ArrayList<>();
         httpClient = new OkHttpClient.Builder().build();
         Request request = new Request.Builder()
@@ -58,13 +58,13 @@ public class ImgurTest {
             @Override
             public void onResponse(Call call, Response response) throws IOException
             {
-                BetterLoadingScreen.log.trace("got a response, askip");
+                //BetterLoadingScreen.log.trace("got a response, askip");
                 try
                 {
                     JSONObject data = new JSONObject(response.body().string());
-                    BetterLoadingScreen.log.trace(data.get("data").toString());
+                    //BetterLoadingScreen.log.trace(data.get("data").toString());
                     JSONObject data2 = new JSONObject(data.get("data").toString());
-                    BetterLoadingScreen.log.trace(data2.get("images").toString());
+                    //BetterLoadingScreen.log.trace(data2.get("images").toString());
 
                     JSONArray image_objs = data2.getJSONArray("images");
 
@@ -75,7 +75,7 @@ public class ImgurTest {
                         }
                     }
 
-                    BetterLoadingScreen.log.trace("Image list:\n" + images);
+                    //BetterLoadingScreen.log.trace("Image list:\n" + images);
 
                     //JSONArray items = data.getJSONArray("data");
 
@@ -88,7 +88,7 @@ public class ImgurTest {
                     /*while(keys.hasNext()) {
                         String key = keys.next();
                         if (data.get(key) instanceof JSONObject) {
-                            BetterLoadingScreen.log.trace(((JSONObject) data.get(key)).toString(4));
+                            //BetterLoadingScreen.log.trace(((JSONObject) data.get(key)).toString(4));
                         }
                     }*/
                     //final List<Photo> photos = new ArrayList<>();
@@ -96,7 +96,7 @@ public class ImgurTest {
                     /*for (int i = 0; i < items.length(); i++)
                     {
                         JSONObject item = items.getJSONObject(i);
-                        BetterLoadingScreen.log.trace(item.toString(4));
+                        //BetterLoadingScreen.log.trace(item.toString(4));
                     }*/
 
                 } catch (JSONException e)

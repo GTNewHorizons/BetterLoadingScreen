@@ -181,10 +181,10 @@ public class ProgressDisplayer {
         try {
             reader = new BufferedReader(new FileReader(file));
             StringBuffer inputBuffer = new StringBuffer();
-            BetterLoadingScreen.log.trace("got the file");
+            //BetterLoadingScreen.log.trace("got the file");
             String line;
             while ((line = reader.readLine()) != null) {
-                BetterLoadingScreen.log.trace(line);
+                //BetterLoadingScreen.log.trace(line);
 				if (line.equals("enabled=true")) {
 					line = "enabled=false";
 					hasTurnedOff = true;
@@ -210,10 +210,10 @@ public class ProgressDisplayer {
         try {
             reader = new BufferedReader(new FileReader(file));
             StringBuffer inputBuffer = new StringBuffer();
-            BetterLoadingScreen.log.trace("got the file");
+            //BetterLoadingScreen.log.trace("got the file");
             String line;
             while ((line = reader.readLine()) != null) {
-                BetterLoadingScreen.log.trace(line);
+                //BetterLoadingScreen.log.trace(line);
 				if (line.equals("enabled=false")) {
 					line = "enabled=true";
 				}

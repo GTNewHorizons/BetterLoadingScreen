@@ -248,17 +248,17 @@ public class MinecraftDisplayer implements IDisplayer {
     	BetterLoadingScreen.log.debug("currentBG is: " + currentBG);
     	Random rand = new Random();
     	String res = randomBackgroundArray[rand.nextInt(randomBackgroundArray.length)];
-        BetterLoadingScreen.log.trace("New res is: " + res);
-        BetterLoadingScreen.log.trace("Does alreadyUsedBGs contain res?: "+String.valueOf(alreadyUsedBGs.contains(res)));
+        //BetterLoadingScreen.log.trace("New res is: " + res);
+        //BetterLoadingScreen.log.trace("Does alreadyUsedBGs contain res?: "+String.valueOf(alreadyUsedBGs.contains(res)));
         if (randomBackgroundArray.length == alreadyUsedBGs.size()) {
             alreadyUsedBGs.clear();
         }
     	while (res.equals(currentBG) || alreadyUsedBGs.contains(res)) {
     		res = randomBackgroundArray[rand.nextInt(randomBackgroundArray.length)];
-    		BetterLoadingScreen.log.trace("Rerolled res is: " + res);
+    		//BetterLoadingScreen.log.trace("Rerolled res is: " + res);
     	}
         alreadyUsedBGs.add(res);
-        BetterLoadingScreen.log.trace("res is: " + res);
+        //BetterLoadingScreen.log.trace("res is: " + res);
     	return res;
     }
 
@@ -266,20 +266,20 @@ public class MinecraftDisplayer implements IDisplayer {
         if (randomTips.length == 1){
             return randomTips[0];
         }
-        BetterLoadingScreen.log.trace("currentTooltip is: " + currentTooltip);
+        //BetterLoadingScreen.log.trace("currentTooltip is: " + currentTooltip);
         Random rand = new Random();
         String res = randomTips[rand.nextInt(randomTips.length)];
-        BetterLoadingScreen.log.trace("New res (tooltip) is: " + res);
-        BetterLoadingScreen.log.trace("Does alreadyUsedTooltips contain res?: " + alreadyUsedTooltips.contains(res));
+        //BetterLoadingScreen.log.trace("New res (tooltip) is: " + res);
+        //BetterLoadingScreen.log.trace("Does alreadyUsedTooltips contain res?: " + alreadyUsedTooltips.contains(res));
         if (randomTips.length == alreadyUsedTooltips.size()) {
             alreadyUsedTooltips.clear();
         }
         while (res.equals(currentTooltip) || alreadyUsedTooltips.contains(res)) {
             res = randomTips[rand.nextInt(randomTips.length)];
-            BetterLoadingScreen.log.trace("Rerolled res (tooltip) is: " + res);
+            //BetterLoadingScreen.log.trace("Rerolled res (tooltip) is: " + res);
         }
         alreadyUsedTooltips.add(res);
-        BetterLoadingScreen.log.trace("res is: " + res);
+        //BetterLoadingScreen.log.trace("res is: " + res);
         return res;
     }
 
@@ -337,7 +337,7 @@ public class MinecraftDisplayer implements IDisplayer {
         }
         byte[] buffer = new byte[fileContents.available()];
         fileContents.read(buffer);
-        BetterLoadingScreen.log.trace("got resource?");
+        //BetterLoadingScreen.log.trace("got resource?");
         File dir = new File("./config/Betterloadingscreen/tips");
         if (!dir.exists()){
             BetterLoadingScreen.log.info("tips dir does not exist");
@@ -349,9 +349,9 @@ public class MinecraftDisplayer implements IDisplayer {
         File dest = new File("./config/Betterloadingscreen/tips/" + locale + ".txt");
         BetterLoadingScreen.log.debug("dest set");
         OutputStream outStream = new FileOutputStream(dest);
-        BetterLoadingScreen.log.trace("output stream set");
+        //BetterLoadingScreen.log.trace("output stream set");
         outStream.write(buffer);
-        BetterLoadingScreen.log.trace("buffer write");
+        //BetterLoadingScreen.log.trace("buffer write");
     }
 
     public void handleTips() {
@@ -368,7 +368,7 @@ public class MinecraftDisplayer implements IDisplayer {
             locale = customTipFilename;
             BetterLoadingScreen.log.info("Using custom tooltips, name: " + locale);
         }
-        BetterLoadingScreen.log.trace("Language is: " + locale);
+        //BetterLoadingScreen.log.trace("Language is: " + locale);
         File tipsCheck = new File("./config/Betterloadingscreen/tips/" + locale + ".txt");
         if (tipsCheck.exists()) {
             BetterLoadingScreen.log.info("Tips file exists");
@@ -376,7 +376,7 @@ public class MinecraftDisplayer implements IDisplayer {
                 randomTips = readTipsFile("./config/Betterloadingscreen/tips/" + locale + ".txt");
                 Random rand = new Random();
                 tip = randomTips[rand.nextInt(randomTips.length)];
-                BetterLoadingScreen.log.trace("choosing first tip: "+tip);
+                //BetterLoadingScreen.log.trace("choosing first tip: "+tip);
                 if (!scheduledTipExecSet) {
                     scheduledTipExecSet = true;
                     tipExec = Executors.newSingleThreadScheduledExecutor();
@@ -406,7 +406,7 @@ public class MinecraftDisplayer implements IDisplayer {
                 }
                 Random rand = new Random();
                 tip = randomTips[rand.nextInt(randomTips.length)];
-                BetterLoadingScreen.log.trace("choosing first tip: " + tip);
+                //BetterLoadingScreen.log.trace("choosing first tip: " + tip);
                 if (!scheduledTipExecSet) {
                     scheduledTipExecSet = true;
                     tipExec = Executors.newSingleThreadScheduledExecutor();
@@ -563,7 +563,7 @@ public class MinecraftDisplayer implements IDisplayer {
             BetterLoadingScreen.log.error("Invalid loading bars color");
         }
         /*if (useImgur) {
-            BetterLoadingScreen.log.trace("2hmmm");
+            //BetterLoadingScreen.log.trace("2hmmm");
             List<Thread> workers = Stream
                     .generate(() -> new Thread(new DlAllImages(countDownLatch)))
                     .limit(1)
@@ -593,13 +593,13 @@ public class MinecraftDisplayer implements IDisplayer {
         handleTips();
 
         if (randomBackgrounds && !salt) {
-            BetterLoadingScreen.log.trace("choosing first random bg");
+            //BetterLoadingScreen.log.trace("choosing first random bg");
             Random rand = new Random();
             background = randomBackgroundArray[rand.nextInt(randomBackgroundArray.length)];
 
             ///timer
             if (!scheduledBackgroundExecSet) {
-                BetterLoadingScreen.log.trace("Setting background exec");
+                //BetterLoadingScreen.log.trace("Setting background exec");
                 scheduledBackgroundExecSet = true;
                 backgroundExec = Executors.newSingleThreadScheduledExecutor();
                 backgroundExec.scheduleAtFixedRate(new Runnable() {
@@ -852,7 +852,7 @@ public class MinecraftDisplayer implements IDisplayer {
                 FontRenderer font = fontRenderer(render.resourceLocation);
                 int width = font.getStringWidth(render.text);
                 int startX1 = render.positionType.transformX(render.position.x, resolution.getScaledWidth() - width);
-                BetterLoadingScreen.log.trace("startX1 normal: "+startX1);
+                //BetterLoadingScreen.log.trace("startX1 normal: "+startX1);
                 int startY1 = render.positionType.transformY(render.position.y, resolution.getScaledHeight() - font.FONT_HEIGHT);
                 if (tipsTextShadow) {
                     font.drawStringWithShadow(render.text, startX1, startY1, Integer.parseInt(tipsColor, 16));
@@ -868,7 +868,7 @@ public class MinecraftDisplayer implements IDisplayer {
             		//GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
             		if (blendingJustSet) {
             			blendingJustSet = false;
-                        BetterLoadingScreen.log.trace("start blend");
+                        //BetterLoadingScreen.log.trace("start blend");
             			Random rand = new Random();
             			newBlendImage = randomBackground(render.resourceLocation);//randomBackgroundArray[rand.nextInt(randomBackgroundArray.length)];
             		}
@@ -876,7 +876,7 @@ public class MinecraftDisplayer implements IDisplayer {
             		GL11.glColor4f(render.getRed(), render.getGreen(), render.getBlue(), blendAlpha);//+0.1F);
             		
             		blendAlpha -= alphaDecreaseStep;
-                    BetterLoadingScreen.log.trace("blendAlpha: "+blendAlpha);
+                    //BetterLoadingScreen.log.trace("blendAlpha: "+blendAlpha);
             		if (blendAlpha <= 0) {
 						blending = false;
 						background = newBlendImage;
@@ -955,7 +955,7 @@ public class MinecraftDisplayer implements IDisplayer {
                     FontRenderer font = fontRenderer(render5.resourceLocation);
                     int width;
                     width = font.getStringWidth(text);
-                    BetterLoadingScreen.log.trace("width1 is: " + width);
+                    //BetterLoadingScreen.log.trace("width1 is: " + width);
                     startX = render5.positionType.transformX(render5.position.x, resolution.getScaledWidth() - width);
                     startY = render5.positionType.transformY(render5.position.y, resolution.getScaledHeight() - font.FONT_HEIGHT);
                     if (textShadow) {
@@ -1029,7 +1029,7 @@ public class MinecraftDisplayer implements IDisplayer {
                         startX = render10.positionType.transformX(render10.position.x, resolution.getScaledWidth() - width);
                         startY = render10.positionType.transformY(render10.position.y, resolution.getScaledHeight() - font.FONT_HEIGHT);
                         if (textShadow) {
-                            BetterLoadingScreen.log.trace("lastPercent: "+String.valueOf(lastPercent));
+                            //BetterLoadingScreen.log.trace("lastPercent: "+String.valueOf(lastPercent));
                             font.drawStringWithShadow(String.valueOf((int)(lastPercent*100)) + "%", startX, startY, /*render.getColour()*/intColor);
                         } else {
                             drawString(font, String.valueOf((int)(lastPercent*100)) + "%", startX, startY, intColor);
@@ -1042,9 +1042,9 @@ public class MinecraftDisplayer implements IDisplayer {
                         render11 = new ImageRender(fontTexture, EPosition.BOTTOM_CENTER, EType.TIPS_TEXT, null, new Area(tipsTextPos[0], tipsTextPos[1], 0, 0), tipsColor, tip, "");
                         font = fontRenderer(render11.resourceLocation);
                         width = font.getStringWidth(render11.text);
-                        BetterLoadingScreen.log.trace("width2 is: "+String.valueOf(width));
+                        //BetterLoadingScreen.log.trace("width2 is: "+String.valueOf(width));
                         int startX1 = render11.positionType.transformX(render11.position.x, resolution.getScaledWidth() - width);
-                        BetterLoadingScreen.log.trace("startX1 blending: "+startX1);
+                        //BetterLoadingScreen.log.trace("startX1 blending: "+startX1);
                         int startY1 = render11.positionType.transformY(render11.position.y, resolution.getScaledHeight() - font.FONT_HEIGHT);
                         if (tipsTextShadow) {
                             font.drawStringWithShadow(render11.text, startX1, startY1, Integer.parseInt(tipsColor, 16));
@@ -1094,7 +1094,7 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     private void preDisplayScreen() {
-        BetterLoadingScreen.log.trace("Called preDisplayScreen");
+        //BetterLoadingScreen.log.trace("Called preDisplayScreen");
     	//bruh
         if (textureManager == null) {
             if (preview) {
@@ -1149,7 +1149,7 @@ public class MinecraftDisplayer implements IDisplayer {
 
         GL11.glColor4f(1, 1, 1, 1);
 
-        BetterLoadingScreen.log.trace("alpha: " + GL11.GL_ALPHA);
+        //BetterLoadingScreen.log.trace("alpha: " + GL11.GL_ALPHA);
         //GL11.GL_ALPHA = 1000;
     }
 
@@ -1163,7 +1163,7 @@ public class MinecraftDisplayer implements IDisplayer {
 
     @Override
     public void close() {
-        BetterLoadingScreen.log.trace("closing askip");
+        //BetterLoadingScreen.log.trace("closing askip");
         if (tipExec != null) {
             tipExec.shutdown();
         }
