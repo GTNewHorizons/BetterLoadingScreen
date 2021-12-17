@@ -1,6 +1,7 @@
 package alexiil.mods.load;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -27,15 +28,15 @@ public class Translation {
     public static void addTranslations(File modLocation) {
         String lookingFor = "assets/betterloadingscreen/lang/";
         if (modLocation == null) {
-            System.out.println("Could not find the translation file!");
+            BetterLoadingScreen.log.error("Could not find the translation file!");
             return;
         }
         if (modLocation.isDirectory()) {
             File langFolder = new File(modLocation, lookingFor);
-            System.out.println(langFolder.getAbsolutePath() + ", " + langFolder.isDirectory());
+            BetterLoadingScreen.log.debug(langFolder.getAbsolutePath() + ", " + langFolder.isDirectory());
             for (File f : langFolder.listFiles()) {
-                if (f != null) System.out.println(f.getAbsolutePath());
-                else System.out.println("null");
+                if (f != null) BetterLoadingScreen.log.debug(f.getAbsolutePath());
+                else BetterLoadingScreen.log.debug("null");
             }
         } else if (modLocation.isFile()) {
             JarFile modJar = null;
@@ -48,14 +49,14 @@ public class Translation {
                     if (name.startsWith(lookingFor) && !name.equals(lookingFor)) {
                         try {
                             addTranslation(name.replace(lookingFor, "").replace(".lang", ""),
-                                    new BufferedReader(new InputStreamReader(modJar.getInputStream(je), "UTF-8")));
+                                    new BufferedReader(new InputStreamReader(modJar.getInputStream(je), StandardCharsets.UTF_8)));
                         } catch (IOException e) {
-                            System.out.println("Had trouble opening " + name);
+                            BetterLoadingScreen.log.error("Had trouble opening " + name);
                         }
                     }
                 }
             } catch (IOException e) {
-                System.out.println("Could not open file");
+                BetterLoadingScreen.log.error("Could not open file");
             } finally {
                 if (modJar != null) try {
                     modJar.close();
@@ -85,43 +86,40 @@ public class Translation {
         }
         if (translators.containsKey(language)) currentTranslation = translators.get(language);
         else if (translators.containsKey("en_US")) {
-            System.out.println("Failed to load " + language + ", loading en_US insted");
+            BetterLoadingScreen.log.info("Failed to load " + language + ", loading en_US instead");
             currentTranslation = translators.get("en_US");
         } else if (!translators.isEmpty()) {
             String name = translators.keySet().iterator().next();
-            System.out.println("Failed to load " + language + ", AND FAILED TO LOAD en_US! One available however is " + name
-                + ", using that and keeping quiet...");
+            BetterLoadingScreen.log.warn("Failed to load " + language + ", AND FAILED TO LOAD en_US! One available however is " + name +
+                ", using that and keeping quiet...");
             currentTranslation = translators.values().iterator().next();
         } else {
-            System.out.println("Failed to load ANY languages! All strings fail now!");
+            BetterLoadingScreen.log.error("Failed to load ANY languages! All strings fail now!");
         }
     }
 
     public static boolean addTranslation(String locale, BufferedReader from) {
         try {
-            System.out.println("Adding locale " + locale);
+            BetterLoadingScreen.log.info("Adding locale " + locale);
             translators.put(locale, new Translation(from));
         } catch (IOException e) {
-            System.out.println("Failed to add" + locale);
+            BetterLoadingScreen.log.error("Failed to add" + locale);
         }
         return true;
     }
 
     private Translation(BufferedReader loadFrom) throws IOException {
-        BufferedReader reader = loadFrom;
-        try {
+        try (BufferedReader reader = loadFrom) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] splitter = line.split("=");
                 if (splitter.length != 2) {
-                    System.out.println("Found an invalid line (" + line + ")");
+                    BetterLoadingScreen.log.warn("Found an invalid line (" + line + ")");
                 } else {
                     translations.put(splitter[0], splitter[1]);
-                    System.out.println("Found a translation " + Arrays.toString(splitter));
+                    BetterLoadingScreen.log.debug("Found a translation " + Arrays.toString(splitter));
                 }
             }
-        } finally {
-            if (reader != null) reader.close();
         }
     }
 

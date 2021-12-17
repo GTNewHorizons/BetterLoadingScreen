@@ -20,7 +20,7 @@ public class MinecraftDisplayerWrapper implements IDisplayer {
                 mcDisp.open(cfg);
             }
             catch (Throwable t) {
-                System.out.println("Failed to load Minecraft Displayer!");
+                BetterLoadingScreen.log.error("Failed to load Minecraft Displayer!");
                 t.printStackTrace();
                 mcDisp = null;
             }

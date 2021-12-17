@@ -10,6 +10,7 @@ import java.util.List;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.common.MinecraftForge;
+
 import alexiil.mods.load.ModLoadingListener.State;
 import alexiil.mods.load.git.Commit;
 import alexiil.mods.load.git.GitHubUser;
@@ -18,9 +19,11 @@ import alexiil.mods.load.git.SiteRequester;
 
 import com.google.common.eventbus.EventBus;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import cpw.mods.fml.client.event.ConfigChangedEvent.OnConfigChangedEvent;
 import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.FMLModContainer;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
@@ -45,6 +48,7 @@ public class BetterLoadingScreen {
     @Instance(Lib.Mod.ID)
     public static BetterLoadingScreen instance;
 
+    public static final Logger log = LogManager.getLogger("BetterLoadingScreen");
     private static List<GitHubUser> contributors = null;
     private static List<Commit> commits = null;
     private static List<Release> releases = null;
@@ -90,28 +94,11 @@ public class BetterLoadingScreen {
         /*alexiil.mods.load.MinecraftDisplayer.blending = true;
     	alexiil.mods.load.MinecraftDisplayer.blendingJustSet = true;*/
     }
-    
-    @EventHandler
-    public void init(FMLInitializationEvent event) {
-    	System.out.println("ricardo milos");
-    	//alexiil.mods.load.MinecraftDisplayer.blending = true;
-    	//alexiil.mods.load.MinecraftDisplayer.blendingJustSet = true;
-    }
-    
-    @EventHandler
-    public void inithmm(FMLStateEvent event) {
-    	/*if (!alexiil.mods.load.MinecraftDisplayer.blending) {
-	    	System.out.println("shrek");
-	    	alexiil.mods.load.MinecraftDisplayer.blending = true;
-	    	alexiil.mods.load.MinecraftDisplayer.blendingJustSet = true;
-    	}*/
-    	System.out.println("bruh: "+event.toString());
-    }
 
     @SubscribeEvent
     @SideOnly(Side.CLIENT)
     public void guiOpen(GuiOpenEvent event) throws IOException {
-        if (event.gui != null && event.gui instanceof GuiMainMenu)
+        if (event.gui instanceof GuiMainMenu)
             ProgressDisplayer.close();
     }
 
@@ -136,36 +123,7 @@ public class BetterLoadingScreen {
     }
 
     public static void initSiteVersioning() {
-        if (ProgressDisplayer.connectExternally) {
-            String droneSite = "https://drone.io/github.com/AlexIIL/BetterLoadingScreen_1.7/files/VersionInfo/build/libs/version/";
-            contributors = Collections.unmodifiableList(SiteRequester.getContributors(droneSite + "contributors.json"));
-            if (contributors.size() == 0)
-                meta.authorList.add("Could not connect to GitHub to fetch the rest...");
-            for (GitHubUser c : contributors) {
-                if ("AlexIIL".equals(c.login))
-                    continue;
-                meta.authorList.add(c.login);
-            }
 
-            commits = SiteRequester.getCommits(droneSite + "commits.json");
-            Collections.sort(commits, new Comparator<Commit>() {
-                @Override
-                public int compare(Commit c0, Commit c1) {
-                    return c1.commit.committer.date.compareTo(c0.commit.committer.date);
-                }
-            });
-            commits = Collections.unmodifiableList(commits);
-
-            for (Commit c : commits)
-                if (getCommitHash().equals(c.sha))
-                    thisCommit = c;
-            if (thisCommit == null && commits.size() > 0 && getBuildType() == 2) {
-                System.out.println("Didn't find my commit! This is unexpected, consider this a bug!");
-                System.out.println("Commit Hash : \"" + getCommitHash() + "\"");
-            }
-
-            releases = Collections.unmodifiableList(SiteRequester.getReleases(droneSite + "releases.json"));
-        }
     }
 
     public static List<GitHubUser> getContributors() {
