@@ -2,9 +2,6 @@ package alexiil.mods.load;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import net.minecraft.client.gui.GuiMainMenu;
@@ -15,7 +12,6 @@ import alexiil.mods.load.ModLoadingListener.State;
 import alexiil.mods.load.git.Commit;
 import alexiil.mods.load.git.GitHubUser;
 import alexiil.mods.load.git.Release;
-import alexiil.mods.load.git.SiteRequester;
 
 import com.google.common.eventbus.EventBus;
 
@@ -32,13 +28,8 @@ import cpw.mods.fml.common.Mod.Instance;
 import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.ModMetadata;
 import cpw.mods.fml.common.event.FMLConstructionEvent;
-import cpw.mods.fml.common.event.FMLInitializationEvent;
-import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
-import cpw.mods.fml.common.event.FMLLoadEvent;
-import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
-import cpw.mods.fml.common.event.FMLStateEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
