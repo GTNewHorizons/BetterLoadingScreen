@@ -112,12 +112,14 @@ public class Translation {
         try (BufferedReader reader = loadFrom) {
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] splitter = line.split("=");
-                if (splitter.length != 2 && !line.equals("")) {
-                    BetterLoadingScreen.log.warn("Found an invalid line (" + line + ")");
-                } else {
-                    translations.put(splitter[0], splitter[1]);
-                    BetterLoadingScreen.log.debug("Found a translation " + Arrays.toString(splitter));
+                if (!line.equals("")){
+                    String[] splitter = line.split("=");
+                    if (splitter.length != 2) {
+                        BetterLoadingScreen.log.warn("Found an invalid line (" + line + ")");
+                    } else {
+                        translations.put(splitter[0], splitter[1]);
+                        BetterLoadingScreen.log.debug("Found a translation " + Arrays.toString(splitter));
+                    }
                 }
             }
         }
