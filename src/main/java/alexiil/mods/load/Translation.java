@@ -113,7 +113,7 @@ public class Translation {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] splitter = line.split("=");
-                if (splitter.length != 2) {
+                if (splitter.length != 2 && !line.equals("")) {
                     BetterLoadingScreen.log.warn("Found an invalid line (" + line + ")");
                 } else {
                     translations.put(splitter[0], splitter[1]);
