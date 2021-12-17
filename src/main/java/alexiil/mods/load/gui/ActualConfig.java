@@ -7,7 +7,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.common.config.ConfigCategory;
 import net.minecraftforge.common.config.ConfigElement;
 import net.minecraftforge.common.config.Configuration;
-import alexiil.mods.load.Tags;
+import alexiil.mods.load.Lib;
 import alexiil.mods.load.ProgressDisplayer;
 import alexiil.mods.load.Translation;
 import cpw.mods.fml.client.config.GuiConfig;
@@ -15,7 +15,7 @@ import cpw.mods.fml.client.config.IConfigElement;
 
 public class ActualConfig extends GuiConfig {
     public ActualConfig(GuiScreen parent) {
-        super(parent, getConfigElements(), Tags.MODID, false, true, Translation.translate("alexiillib.config.title", "Main Configuration File"));
+        super(parent, getConfigElements(), Lib.Mod.ID, false, true, Translation.translate("alexiillib.config.title", "Main Configuration File"));
     }
 
     @SuppressWarnings("rawtypes")

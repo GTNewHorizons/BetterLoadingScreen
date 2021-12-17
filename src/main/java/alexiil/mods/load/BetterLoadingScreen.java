@@ -34,9 +34,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-@Mod(modid = Tags.MODID, version = Tags.VERSION, name = Tags.MODNAME, acceptedMinecraftVersions = "[1.7.10]", guiFactory = "alexiil.mods.load.gui.ConfigGuiFactory", acceptableRemoteVersions = "*")
+@Mod(modid = Lib.Mod.ID, version = Lib.Mod.VERSION, name = Lib.Mod.NAME, acceptedMinecraftVersions = "[1.7.10]", guiFactory = "alexiil.mods.load.gui.ConfigGuiFactory", acceptableRemoteVersions = "*")
 public class BetterLoadingScreen {
-    @Instance(Tags.MODID)
+    @Instance(Lib.Mod.ID)
     public static BetterLoadingScreen instance;
 
     public static final Logger log = LogManager.getLogger("BetterLoadingScreen");
@@ -63,7 +63,7 @@ public class BetterLoadingScreen {
                     t.printStackTrace();
                 }
                 if (bus != null) {
-                    if (mod.getModId().equals(Tags.MODID)) {
+                    if (mod.getModId().equals(Lib.Mod.ID)) {
                         thisListener = new ModLoadingListener(mod);
                         bus.register(thisListener);
                     }
@@ -95,7 +95,7 @@ public class BetterLoadingScreen {
 
     @SubscribeEvent
     public void configChanged(OnConfigChangedEvent event) {
-        if (event.modID == Tags.MODID)
+        if (event.modID == Lib.Mod.ID)
             ProgressDisplayer.cfg.save();
     }
 

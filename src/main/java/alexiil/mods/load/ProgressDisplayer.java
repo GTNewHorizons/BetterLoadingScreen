@@ -10,10 +10,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-import com.google.gson.Gson;
-
 import cpw.mods.fml.client.FMLFileResourcePack;
-import cpw.mods.fml.client.SplashProgress;
 import cpw.mods.fml.common.DummyModContainer;
 import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.ModMetadata;
@@ -123,8 +120,8 @@ public class ProgressDisplayer {
         // Assume this is a dev environment, and that the build dir is in bin, and the test dir has the same parent as
         // the bin dir...
         ModMetadata md = new ModMetadata();
-        md.name = Tags.MODNAME;
-        md.modId = Tags.MODID;
+        md.name = Lib.Mod.NAME;
+        md.modId = Lib.Mod.ID;
         modContainer = new DummyModContainer(md) {
             @Override
             public Class<?> getCustomResourcePackClass() {
@@ -138,7 +135,7 @@ public class ProgressDisplayer {
 
             @Override
             public String getModId() {
-                return Tags.MODID;
+                return Lib.Mod.ID;
             }
         };
 
