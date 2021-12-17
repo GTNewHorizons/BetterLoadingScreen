@@ -123,8 +123,8 @@ public class ProgressDisplayer {
         // Assume this is a dev environment, and that the build dir is in bin, and the test dir has the same parent as
         // the bin dir...
         ModMetadata md = new ModMetadata();
-        md.name = Lib.Mod.NAME;
-        md.modId = Lib.Mod.ID;
+        md.name = Tags.MODNAME;
+        md.modId = Tags.MODID;
         modContainer = new DummyModContainer(md) {
             @Override
             public Class<?> getCustomResourcePackClass() {
@@ -138,7 +138,7 @@ public class ProgressDisplayer {
 
             @Override
             public String getModId() {
-                return Lib.Mod.ID;
+                return Tags.MODID;
             }
         };
 
