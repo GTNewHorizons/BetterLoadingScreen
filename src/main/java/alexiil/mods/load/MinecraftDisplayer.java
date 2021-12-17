@@ -478,10 +478,10 @@ public class MinecraftDisplayer implements IDisplayer {
         String comment17 = "Material animated loading bar position";
         GTprogressPosAnimated = stringToIntArray(cfg.getString("GTProgressBarPosAnimated", "layout", intArrayToString(GTprogressPosAnimated), comment17));
         //Material Loading Bar Text
-        String comment18 = "Main loading bar text position. The two values are for position (x and y).";
+        String comment18 = "Material loading bar text position. The two values are for position (x and y).";
         GTprogressTextPos = stringToIntArray(cfg.getString("materialProgressBarTextPos", "layout", intArrayToString(GTprogressTextPos), comment18));
-        //Main Loading Bar Percentage
-        String comment19 = "Main loading bar percentage position";
+        //Material Loading Bar Percentage
+        String comment19 = "Material loading bar percentage position";
         GTprogressPercentagePos = stringToIntArray(cfg.getString("materialProgressBarPercentagePos", "layout", intArrayToString(GTprogressPercentagePos), comment19));
 
         //Color of the two dynamic bars

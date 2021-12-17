@@ -40,16 +40,6 @@ public class BaseConfig extends GuiScreen {
 
     protected void setupGui() {
         int width = 0;
-        if (ProgressDisplayer.connectExternally) {
-            for (GitHubUser usr : BetterLoadingScreen.getContributors())
-                width = Math.max(width, fontRendererObj.getStringWidth(usr.login));
-
-            contributors = new GitHubUserScrollingList(this, width + 40, this.height, 40, this.height - 40, 10);
-            for (GitHubUser c : BetterLoadingScreen.getContributors())
-                contributors.userList.add(c);
-
-            commits = new CommitScrollingList(this, this.width - width - 80, this.height, 40, this.height - 40, width + 60);
-        }
         int index = 0;
         int maxXPos = Math.min(this.width - xPosHelp, 400);
 
@@ -84,18 +74,10 @@ public class BaseConfig extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawBackground(0);
-        if (ProgressDisplayer.connectExternally) {
-            commits.drawScreen(mouseX, mouseY, partialTicks);
-            contributors.drawScreen(mouseX, mouseY, partialTicks);
-            drawString(fontRendererObj, Translation.translate("alexiillib.gui.contributors"), 8, 30, 0xFFFFFF);
-            String text = Translation.translate("alexiillib.gui.commits");
-            drawString(fontRendererObj, text, this.width - fontRendererObj.getStringWidth(text) - 10, 30, 0xFFFFFF);
-        }
-        else {
-            String text = Translation.translate("alexiillib.gui.connectExternallyDisabled");
-            int textWidth = fontRendererObj.getStringWidth(text);
-            drawHoveringText(Collections.singletonList(text), (this.width - textWidth) / 2, this.height / 2, fontRendererObj);
-        }
+        String text = Translation.translate("alexiillib.gui.connectExternallyDisabled");
+        int textWidth = fontRendererObj.getStringWidth(text);
+        drawHoveringText(Collections.singletonList(text), (this.width - textWidth) / 2, this.height / 2, fontRendererObj);
+
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 

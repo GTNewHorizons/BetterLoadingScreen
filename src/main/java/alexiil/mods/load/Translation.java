@@ -100,7 +100,7 @@ public class Translation {
 
     public static boolean addTranslation(String locale, BufferedReader from) {
         try {
-            BetterLoadingScreen.log.info("Adding locale " + locale);
+            BetterLoadingScreen.log.debug("Adding locale " + locale);
             translators.put(locale, new Translation(from));
         } catch (IOException e) {
             BetterLoadingScreen.log.error("Failed to add" + locale);

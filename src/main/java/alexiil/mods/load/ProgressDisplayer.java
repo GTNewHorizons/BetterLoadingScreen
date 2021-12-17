@@ -77,7 +77,7 @@ public class ProgressDisplayer {
     private static IDisplayer displayer;
     private static int clientState = -1;
     public static Configuration cfg;
-    public static boolean connectExternally, playSound;
+    public static boolean playSound;
     public static File coreModLocation;
     public static ModContainer modContainer;
 
