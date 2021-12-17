@@ -34,9 +34,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-@Mod(modid = Lib.Mod.ID, guiFactory = "alexiil.mods.load.gui.ConfigGuiFactory", acceptableRemoteVersions = "*")
+@Mod(modid = Tags.MODID, version = Tags.VERSION, name = Tags.MODNAME, acceptedMinecraftVersions = "[1.7.10]", guiFactory = "alexiil.mods.load.gui.ConfigGuiFactory", acceptableRemoteVersions = "*")
 public class BetterLoadingScreen {
-    @Instance(Lib.Mod.ID)
+    @Instance(Tags.MODID)
     public static BetterLoadingScreen instance;
 
     public static final Logger log = LogManager.getLogger("BetterLoadingScreen");
@@ -63,7 +63,7 @@ public class BetterLoadingScreen {
                     t.printStackTrace();
                 }
                 if (bus != null) {
-                    if (mod.getModId().equals(Lib.Mod.ID)) {
+                    if (mod.getModId().equals(Tags.MODID)) {
                         thisListener = new ModLoadingListener(mod);
                         bus.register(thisListener);
                     }
@@ -95,7 +95,7 @@ public class BetterLoadingScreen {
 
     @SubscribeEvent
     public void configChanged(OnConfigChangedEvent event) {
-        if (event.modID == Lib.Mod.ID)
+        if (event.modID == Tags.MODID)
             ProgressDisplayer.cfg.save();
     }
 
@@ -103,14 +103,6 @@ public class BetterLoadingScreen {
     @SideOnly(Side.SERVER)
     public void serverAboutToStart(FMLServerAboutToStartEvent event) throws IOException {
         ProgressDisplayer.close();
-    }
-
-    public static String getCommitHash() {
-        return Lib.Mod.COMMIT_HASH;
-    }
-
-    public static int getBuildType() {
-        return Lib.Mod.buildType();
     }
 
     public static void initSiteVersioning() {
