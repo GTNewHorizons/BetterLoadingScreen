@@ -217,7 +217,9 @@ public class ProgressDisplayer {
             overrideForgeSplashProgress();
             hasInitRL = true;
         }
-        displayer.displayProgress(text, percent);
+        try {
+            displayer.displayProgress(text, percent);
+        } catch (Throwable t) {}
     }
 
     public static void close() throws IOException {
