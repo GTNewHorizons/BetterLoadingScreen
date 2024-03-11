@@ -6,6 +6,5 @@ public class Lib {
 
         public static final String ID = "betterloadingscreen";
         public static final String NAME = "Better Loading Screen GTNH";
-        public static final String VERSION = "GRADLETOKEN_VERSION";
     }
 }

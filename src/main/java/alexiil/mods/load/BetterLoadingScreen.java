@@ -35,7 +35,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 @Mod(
         modid = Lib.Mod.ID,
-        version = Lib.Mod.VERSION,
+        version = Tags.VERSION,
         name = Lib.Mod.NAME,
         acceptedMinecraftVersions = "[1.7.10]",
         guiFactory = "alexiil.mods.load.gui.ConfigGuiFactory",
