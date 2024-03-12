@@ -13,19 +13,23 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import net.minecraft.util.StatCollector;
+
 @Deprecated
 public class Translation {
 
-    private static Map<String, Translation> translators = new HashMap<String, Translation>();
+    private static final Map<String, Translation> translators = new HashMap<>();
     private static Translation currentTranslation = null;
-    private Map<String, String> translations = new HashMap<String, String>();
+    private final Map<String, String> translations = new HashMap<>();
 
     public static String translate(String toTranslate) {
         return translate(toTranslate, toTranslate);
     }
 
     public static String translate(String toTranslate, String failure) {
-        // return I18n.format(toTranslate);
+        if (StatCollector.canTranslate(toTranslate)) {
+            return StatCollector.translateToLocal(toTranslate);
+        }
         if (currentTranslation != null) return currentTranslation.translateInternal(toTranslate, failure);
         return failure;
     }
