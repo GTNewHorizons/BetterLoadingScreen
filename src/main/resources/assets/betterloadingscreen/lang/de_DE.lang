@@ -5,7 +5,7 @@ betterloadingscreen.state.initialization=Initialisierung
 betterloadingscreen.state.post_initialization=Nachinitialisierung
 betterloadingscreen.state.completed=Fertig
 betterloadingscreen.state.reloading_resource_packs=Aktualisiere Ressourcenpakete
-betterloadingscreen.memory_usage=Memory usage: %5d/%5d MB
+betterloadingscreen.memory_usage=Speicherbelegung: %5d/%5d MB
 betterloadingscreen.loading=Lade
 
 alexiillib.gui.contributors=Mitwirkende
@@ -22,4 +22,4 @@ alexiillib.config.closeHelp=Hilfe schließen
 #This is a list, so adding "civcraft.gui.config.help3=..." is fine (and etc) 
 alexiillib.gui.config.help.0=Auf die Konfiguration kannst du mit den Knöpfen oben links zugreifen (keine Sorge, sie sind noch da)
 alexiillib.gui.config.help.1=Links ist eine Liste von allen Leuten, die geholfen haben, diese Mod zu erstellen
-alexiillib.gui.config.help.2=Rechts ist eine Änderungshistorie von dieser Mod. Gold ist die Version, die du gerade benutzt, blau ist der Start einer neuen Änderung, und grün ist, wann eine jar auf Curseforge verfübar ist.
+alexiillib.gui.config.help.2=Rechts ist eine Änderungshistorie von dieser Mod. Gold ist die Version, die du gerade benutzt, blau ist der Start einer neuen Änderung, und grün ist, wann eine jar auf Curseforge verfügbar ist.
