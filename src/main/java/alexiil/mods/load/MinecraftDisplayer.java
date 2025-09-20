@@ -1220,6 +1220,7 @@ public class MinecraftDisplayer implements IDisplayer {
         }
         FontRenderer font = new FontRenderer(mc.gameSettings, new ResourceLocation(fontTexture), textureManager, false);
         font.onResourceManagerReload(mc.getResourceManager());
+        font.setUnicodeFlag(mc.func_152349_b());
         if (!preview) {
             mc.refreshResources();
             font.onResourceManagerReload(mc.getResourceManager());
