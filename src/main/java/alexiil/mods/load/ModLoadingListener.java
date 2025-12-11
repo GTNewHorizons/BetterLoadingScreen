@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraftforge.common.MinecraftForge;
-
 import com.google.common.eventbus.Subscribe;
 
 import cpw.mods.fml.common.ModContainer;
@@ -116,14 +114,13 @@ public class ModLoadingListener {
         }
     }
 
-    private static List<ModLoadingListener> listeners = new ArrayList<>();
+    private static final List<ModLoadingListener> listeners = new ArrayList<>();
     private static ModStage stage = null;
 
     private final ModContainer mod;
 
     public ModLoadingListener(ModContainer mod) {
         this.mod = mod;
-        if (listeners.isEmpty()) MinecraftForge.EVENT_BUS.register(this);
         listeners.add(this);
     }
 
