@@ -2,6 +2,7 @@ package alexiil.mods.load;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -62,6 +63,9 @@ public class LoadingFrame extends JFrame {
     private ThreadIncrementer incrementer;
 
     public static void setSystemLAF() {
+        if (GraphicsEnvironment.isHeadless()) {
+            return;
+        }
         String clsName = UIManager.getSystemLookAndFeelClassName();
         try {
             UIManager.setLookAndFeel(clsName);
