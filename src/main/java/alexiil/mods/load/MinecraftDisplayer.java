@@ -35,6 +35,7 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.resources.DefaultResourcePack;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.client.resources.LanguageManager;
 import net.minecraft.util.ResourceLocation;
@@ -209,18 +210,40 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     @SuppressWarnings("unchecked")
-    private List<IResourcePack> getOnlyList() {
+    private List<IResourcePack> getDefaultResourcePackList() {
+        try {
+            for (String fieldName : new String[] { "defaultResourcePacks", "field_110449_ao" }) {
+                try {
+                    Field f = mc.getClass().getDeclaredField(fieldName);
+                    if (!List.class.isAssignableFrom(f.getType()) || Modifier.isStatic(f.getModifiers())) {
+                        continue;
+                    }
+                    f.setAccessible(true);
+                    return (List<IResourcePack>) f.get(mc);
+                } catch (NoSuchFieldException ignored) {}
+            }
+        } catch (Throwable t) {
+            BetterLoadingScreen.log.warn("Failed to access minecraft default resource packs by field name", t);
+        }
+
+        // Fallback for unknown mappings/JVMs: look for the list that contains the vanilla default pack instance.
+        final DefaultResourcePack defaultPack = mc.mcDefaultResourcePack;
         Field[] flds = mc.getClass().getDeclaredFields();
         for (Field f : flds) {
             if (f.getType().equals(List.class) && !Modifier.isStatic(f.getModifiers())) {
                 f.setAccessible(true);
                 try {
-                    return (List<IResourcePack>) f.get(mc);
+                    List<?> list = (List<?>) f.get(mc);
+                    if (list != null && defaultPack != null && list.contains(defaultPack)) {
+                        return (List<IResourcePack>) list;
+                    }
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
             }
         }
+        BetterLoadingScreen.log
+                .warn("Could not find default resource pack list, continuing without BLS pack injection");
         return null;
     }
 
@@ -703,8 +726,10 @@ public class MinecraftDisplayer implements IDisplayer {
             if (!ProgressDisplayer.coreModLocation.isDirectory())
                 myPack = new FMLFileResourcePack(ProgressDisplayer.modContainer);
             else myPack = new FMLFolderResourcePack(ProgressDisplayer.modContainer);
-            getOnlyList().add(myPack);
-            mc.refreshResources();
+            List<IResourcePack> defaultPacks = getDefaultResourcePackList();
+            if (defaultPacks != null && !defaultPacks.contains(myPack)) {
+                defaultPacks.add(myPack);
+            }
         }
 
         handleTips();
@@ -1222,7 +1247,6 @@ public class MinecraftDisplayer implements IDisplayer {
         font.onResourceManagerReload(mc.getResourceManager());
         font.setUnicodeFlag(mc.func_152349_b());
         if (!preview) {
-            mc.refreshResources();
             font.onResourceManagerReload(mc.getResourceManager());
         }
         fontRenderers.put(fontTexture, font);
@@ -1454,7 +1478,6 @@ public class MinecraftDisplayer implements IDisplayer {
                 textureManager = mc.renderEngine;
             } else {
                 textureManager = mc.renderEngine = new TextureManager(mc.getResourceManager());
-                mc.refreshResources();
                 textureManager.onResourceManagerReload(mc.getResourceManager());
                 mc.fontRenderer = new FontRenderer(
                         mc.gameSettings,
@@ -1529,7 +1552,10 @@ public class MinecraftDisplayer implements IDisplayer {
         if (backgroundExec != null) {
             backgroundExec.shutdown();
         }
-        getOnlyList().remove(myPack);
+        List<IResourcePack> defaultPacks = getDefaultResourcePackList();
+        if (defaultPacks != null) {
+            defaultPacks.remove(myPack);
+        }
 
         if (imgurCacheManager != null) {
             imgurCacheManager.cleanUp();
