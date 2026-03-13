@@ -14,7 +14,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,7 +34,6 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.client.resources.DefaultResourcePack;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.client.resources.LanguageManager;
 import net.minecraft.util.ResourceLocation;
@@ -211,40 +209,7 @@ public class MinecraftDisplayer implements IDisplayer {
 
     @SuppressWarnings("unchecked")
     private List<IResourcePack> getDefaultResourcePackList() {
-        try {
-            for (String fieldName : new String[] { "defaultResourcePacks", "field_110449_ao" }) {
-                try {
-                    Field f = mc.getClass().getDeclaredField(fieldName);
-                    if (!List.class.isAssignableFrom(f.getType()) || Modifier.isStatic(f.getModifiers())) {
-                        continue;
-                    }
-                    f.setAccessible(true);
-                    return (List<IResourcePack>) f.get(mc);
-                } catch (NoSuchFieldException ignored) {}
-            }
-        } catch (Throwable t) {
-            BetterLoadingScreen.log.warn("Failed to access minecraft default resource packs by field name", t);
-        }
-
-        // Fallback for unknown mappings/JVMs: look for the list that contains the vanilla default pack instance.
-        final DefaultResourcePack defaultPack = mc.mcDefaultResourcePack;
-        Field[] flds = mc.getClass().getDeclaredFields();
-        for (Field f : flds) {
-            if (f.getType().equals(List.class) && !Modifier.isStatic(f.getModifiers())) {
-                f.setAccessible(true);
-                try {
-                    List<?> list = (List<?>) f.get(mc);
-                    if (list != null && defaultPack != null && list.contains(defaultPack)) {
-                        return (List<IResourcePack>) list;
-                    }
-                } catch (Throwable e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        BetterLoadingScreen.log
-                .warn("Could not find default resource pack list, continuing without BLS pack injection");
-        return null;
+        return mc.defaultResourcePacks;
     }
 
     public void openPreview(ImageRender[] renders) {
