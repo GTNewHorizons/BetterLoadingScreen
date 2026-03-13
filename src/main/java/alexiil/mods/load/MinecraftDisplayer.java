@@ -692,7 +692,7 @@ public class MinecraftDisplayer implements IDisplayer {
                 myPack = new FMLFileResourcePack(ProgressDisplayer.modContainer);
             else myPack = new FMLFolderResourcePack(ProgressDisplayer.modContainer);
             List<IResourcePack> defaultPacks = getDefaultResourcePackList();
-            if (defaultPacks != null && !defaultPacks.contains(myPack)) {
+            if (!defaultPacks.contains(myPack)) {
                 defaultPacks.add(myPack);
             }
         }
@@ -1517,10 +1517,7 @@ public class MinecraftDisplayer implements IDisplayer {
         if (backgroundExec != null) {
             backgroundExec.shutdown();
         }
-        List<IResourcePack> defaultPacks = getDefaultResourcePackList();
-        if (defaultPacks != null) {
-            defaultPacks.remove(myPack);
-        }
+        getDefaultResourcePackList().remove(myPack);
 
         if (imgurCacheManager != null) {
             imgurCacheManager.cleanUp();
