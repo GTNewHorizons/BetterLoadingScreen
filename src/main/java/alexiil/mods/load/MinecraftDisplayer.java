@@ -14,6 +14,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -208,8 +209,19 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     @SuppressWarnings("unchecked")
-    private List<IResourcePack> getDefaultResourcePackList() {
-        return mc.defaultResourcePacks;
+    private List<IResourcePack> getOnlyList() {
+        Field[] flds = mc.getClass().getDeclaredFields();
+        for (Field f : flds) {
+            if (f.getType().equals(List.class) && !Modifier.isStatic(f.getModifiers())) {
+                f.setAccessible(true);
+                try {
+                    return (List<IResourcePack>) f.get(mc);
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return null;
     }
 
     public void openPreview(ImageRender[] renders) {
@@ -691,10 +703,8 @@ public class MinecraftDisplayer implements IDisplayer {
             if (!ProgressDisplayer.coreModLocation.isDirectory())
                 myPack = new FMLFileResourcePack(ProgressDisplayer.modContainer);
             else myPack = new FMLFolderResourcePack(ProgressDisplayer.modContainer);
-            List<IResourcePack> defaultPacks = getDefaultResourcePackList();
-            if (!defaultPacks.contains(myPack)) {
-                defaultPacks.add(myPack);
-            }
+            getOnlyList().add(myPack);
+            mc.refreshResources();
         }
 
         handleTips();
@@ -1212,6 +1222,7 @@ public class MinecraftDisplayer implements IDisplayer {
         font.onResourceManagerReload(mc.getResourceManager());
         font.setUnicodeFlag(mc.func_152349_b());
         if (!preview) {
+            mc.refreshResources();
             font.onResourceManagerReload(mc.getResourceManager());
         }
         fontRenderers.put(fontTexture, font);
@@ -1443,6 +1454,7 @@ public class MinecraftDisplayer implements IDisplayer {
                 textureManager = mc.renderEngine;
             } else {
                 textureManager = mc.renderEngine = new TextureManager(mc.getResourceManager());
+                mc.refreshResources();
                 textureManager.onResourceManagerReload(mc.getResourceManager());
                 mc.fontRenderer = new FontRenderer(
                         mc.gameSettings,
@@ -1517,7 +1529,7 @@ public class MinecraftDisplayer implements IDisplayer {
         if (backgroundExec != null) {
             backgroundExec.shutdown();
         }
-        getDefaultResourcePackList().remove(myPack);
+        getOnlyList().remove(myPack);
 
         if (imgurCacheManager != null) {
             imgurCacheManager.cleanUp();
