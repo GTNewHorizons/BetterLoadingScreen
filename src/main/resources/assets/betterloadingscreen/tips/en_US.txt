@@ -9,7 +9,7 @@ Infinite water sources are disabled
 Got a question? Join our Discord server: discord.com/invite/EXshrPV
 Don't give ideas to 0lafe
 Don't feed your machines after midnight!
-Make sure you have installed a backup mod
+Make sure you have configured backup mod
 Material tiers play a role when breaking pipes
 If a machine catches fire, it can explode
 Adding water to an empty but hot Boiler will make a loud bang!
@@ -18,7 +18,7 @@ You can bind the quests menu to a key, instead of using the book
 Pam's gardens can be picked up with right-click
 Placing a garden makes it spread
 Water gardens can grow on land
-Battlegear slots are convenient for holding weapons
+Use the offhand slot for holding a shield or weapon
 Taking lava without gloves hurts!
 Watch out, eating the same food gives diminishing returns
 Loot Games give helpful rewards
@@ -49,7 +49,7 @@ Tinker's faucets can pour fluids and also gasses(!) into containers
 Beware of pollution!
 Found a bug? Report it on GitHub
 Tinker's smeltery does not double ores
-Be sure to check out the wiki: gtnh.miraheze.org
+Be sure to check out the wiki: wiki.gtnewhorizons.com
 Perditio and vanadiumsteel picks and hammers are really fast
 Look for ore chunks
 Nerfs incoming!
