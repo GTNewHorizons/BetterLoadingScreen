@@ -26,6 +26,8 @@ public class ModLoadingListener {
         LOAD_COMPLETE("completed"),
         FINAL_LOADING("reloading_resource_packs", true, false);
 
+        public static final State[] VALUES = values();
+
         private String translatedName = null;
         final String name;
         /**
@@ -84,8 +86,8 @@ public class ModLoadingListener {
             if (ind == listeners.size() || s.isLoneState) {
                 ind = 0;
                 int ord = s.ordinal() + 1;
-                if (ord == State.values().length) return null;
-                s = State.values()[ord];
+                if (ord == State.VALUES.length) return null;
+                s = State.VALUES[ord];
                 if (s.shouldSkip) return new ModStage(s, ind).getNext();
             }
             return new ModStage(s, ind);
@@ -100,7 +102,7 @@ public class ModLoadingListener {
         }
 
         public float getProgress() {
-            float values = 100 / (float) (State.values().length - 1);
+            float values = 100 / (float) (State.VALUES.length - 1);
             float part = state.ordinal() * values;
             float size = listeners.size();
             float percent = values * index / size;
@@ -108,7 +110,7 @@ public class ModLoadingListener {
         }
 
         public float getPercent() {
-            float values = 100 / (float) (State.values().length - 1);
+            float values = 100 / (float) (State.VALUES.length - 1);
             float size = listeners.size();
             return values * index / size;
         }
