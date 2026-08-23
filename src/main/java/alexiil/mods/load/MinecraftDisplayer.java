@@ -62,6 +62,7 @@ public class MinecraftDisplayer implements IDisplayer {
     private static String fontTexture;
     private static String defaultFontTexture = "textures/font/ascii.png";
     private final boolean preview;
+    private boolean threadedRendering = true;
     private ImageRender[] images;
     private TextureManager textureManager = null;
     private Map<String, FontRenderer> fontRenderers = new HashMap<String, FontRenderer>();
@@ -523,6 +524,13 @@ public class MinecraftDisplayer implements IDisplayer {
                 + "Note: if a resourcepack adds a font, it will be used by BLS.";
         fontTexture = cfg.getString("font", "general", defaultFontTexture, comment4);
 
+        String threadedRenderingComment = "Render the loading screen on a separate thread using a shared OpenGL context."
+                + n
+                + "Disable this on platforms without shared context support, such as Android."
+                + n
+                + "When disabled, animations update only when loading progress changes.";
+        threadedRendering = cfg.getBoolean("threadedRendering", "general", threadedRendering, threadedRenderingComment);
+
         String comment5 = "Path to background resource." + n
                 + "You can use a resourcepack or resource loader for custom resources.";
         background = cfg.getString("background", "layout", background, comment5);
@@ -763,6 +771,12 @@ public class MinecraftDisplayer implements IDisplayer {
 
     @Override
     public void displayProgress(String text, float percent) {
+        if (!threadedRendering) {
+            renderProgress(text, percent);
+            mc.func_147120_f();
+            return;
+        }
+
         currentText = text;
         currentPercent = percent;
         if (splashRenderThread == null) {
@@ -793,12 +807,7 @@ public class MinecraftDisplayer implements IDisplayer {
                         throw new RuntimeException(e);
                     }
                     while (!MinecraftDisplayer.this.splashRenderKillSwitch) {
-                        resetGlState();
-                        try {
-                            displayProgressInWorkerThread(currentText, currentPercent);
-                        } catch (Exception e) {
-                            BetterLoadingScreen.log.warn("BLS splash error: ", e);
-                        }
+                        renderProgress(currentText, currentPercent);
 
                         fmlMutex.acquireUninterruptibly();
                         Display.update();
@@ -814,25 +823,6 @@ public class MinecraftDisplayer implements IDisplayer {
                     }
                 }
 
-                private void resetGlState() {
-                    Minecraft mc = Minecraft.getMinecraft();
-                    int w = Display.getWidth();
-                    int h = Display.getHeight();
-                    mc.displayWidth = w;
-                    mc.displayHeight = h;
-                    GL11.glClearColor(0, 0, 0, 1);
-                    GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-                    GL11.glEnable(GL_DEPTH_TEST);
-                    GL11.glDepthFunc(GL_LEQUAL);
-                    GL11.glEnable(GL_ALPHA_TEST);
-                    GL11.glAlphaFunc(GL_GREATER, .1f);
-                    GL11.glViewport(0, 0, w, h);
-                    GL11.glMatrixMode(GL_PROJECTION);
-                    GL11.glLoadIdentity();
-                    GL11.glOrtho(320 - w / 2, 320 + w / 2, 240 + h / 2, 240 - h / 2, -1, 1);
-                    GL11.glMatrixMode(GL_MODELVIEW);
-                    GL11.glLoadIdentity();
-                }
             });
             splashRenderThread.setName("BLS Splash renderer");
             splashRenderThread.setDaemon(true);
@@ -845,6 +835,35 @@ public class MinecraftDisplayer implements IDisplayer {
                 throw new IllegalStateException("BetterLoadingScreen splash thread terminated upon start");
             }
         }
+    }
+
+    private void renderProgress(String text, float percent) {
+        resetGlState();
+        try {
+            displayProgressInWorkerThread(text, percent);
+        } catch (Exception e) {
+            BetterLoadingScreen.log.warn("BLS splash error: ", e);
+        }
+    }
+
+    private void resetGlState() {
+        Minecraft mc = Minecraft.getMinecraft();
+        int w = Display.getWidth();
+        int h = Display.getHeight();
+        mc.displayWidth = w;
+        mc.displayHeight = h;
+        GL11.glClearColor(0, 0, 0, 1);
+        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        GL11.glEnable(GL_DEPTH_TEST);
+        GL11.glDepthFunc(GL_LEQUAL);
+        GL11.glEnable(GL_ALPHA_TEST);
+        GL11.glAlphaFunc(GL_GREATER, .1f);
+        GL11.glViewport(0, 0, w, h);
+        GL11.glMatrixMode(GL_PROJECTION);
+        GL11.glLoadIdentity();
+        GL11.glOrtho(320 - w / 2, 320 + w / 2, 240 + h / 2, 240 - h / 2, -1, 1);
+        GL11.glMatrixMode(GL_MODELVIEW);
+        GL11.glLoadIdentity();
     }
 
     public void displayProgressInWorkerThread(String text, float percent) {
