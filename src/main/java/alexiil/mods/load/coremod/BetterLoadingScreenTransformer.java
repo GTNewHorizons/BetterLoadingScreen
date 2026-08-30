@@ -20,22 +20,14 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
-        if (transformedName.equals("net.minecraft.client.Minecraft")) {
-            return transformMinecraft(basicClass);
-        }
-        if (transformedName.equals("cpw.mods.fml.client.SplashProgress")) {
-            return transformSplashProgress(basicClass);
-        }
-        if (transformedName.equals("cpw.mods.fml.common.ProgressManager")) {
-            return transformProgressManager(basicClass);
-        }
-        if (transformedName.equals("cpw.mods.fml.common.ProgressManager$ProgressBar")) {
-            return transformProgressBar(basicClass);
-        }
-        if (name.equals("com.mumfrey.liteloader.client.api.ObjectFactoryClient")) {
-            return transformObjectFactoryClient(basicClass);
-        }
-        return basicClass;
+        return switch (transformedName) {
+            case "net.minecraft.client.Minecraft" -> transformMinecraft(basicClass);
+            case "cpw.mods.fml.client.SplashProgress" -> transformSplashProgress(basicClass);
+            case "cpw.mods.fml.common.ProgressManager" -> transformProgressManager(basicClass);
+            case "cpw.mods.fml.common.ProgressManager$ProgressBar" -> transformProgressBar(basicClass);
+            case "com.mumfrey.liteloader.client.api.ObjectFactoryClient" -> transformObjectFactoryClient(basicClass);
+            default -> basicClass;
+        };
     }
 
     private byte[] transformObjectFactoryClient(byte[] before) {
@@ -80,7 +72,7 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
         ClassNode classNode = new ClassNode();
         ClassReader reader = new ClassReader(before);
         reader.accept(classNode, 0);
-        int transformations = 0;
+        boolean success = false;
 
         for (MethodNode m : classNode.methods) {
             if (m.name.equals("step") && m.desc.equals("(Ljava/lang/String;)V")) {
@@ -96,13 +88,14 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
                                         "(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V",
                                         false));
                         m.instructions.insertBefore(node, callback);
+                        success = true;
                     }
                 }
-                transformations++;
+                break;
             }
         }
 
-        if (transformations != 1) {
+        if (!success) {
             throw new IllegalStateException("BetterLoadingScreen couldn't transform FML ProgressBar properly!");
         }
 
@@ -115,7 +108,7 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
         ClassNode classNode = new ClassNode();
         ClassReader reader = new ClassReader(before);
         reader.accept(classNode, 0);
-        int transformations = 0;
+        boolean success = false;
 
         for (MethodNode m : classNode.methods) {
             if (m.name.equals("pop") && m.desc.equals("(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V")) {
@@ -131,13 +124,14 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
                                         "(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V",
                                         false));
                         m.instructions.insertBefore(node, callback);
+                        success = true;
                     }
                 }
-                transformations++;
+                break;
             }
         }
 
-        if (transformations != 1) {
+        if (!success) {
             throw new IllegalStateException("BetterLoadingScreen couldn't transform FML ProgressManager properly!");
         }
 
