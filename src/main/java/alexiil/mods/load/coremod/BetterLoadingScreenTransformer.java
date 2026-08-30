@@ -7,10 +7,12 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 import alexiil.mods.load.BetterLoadingScreen;
 
@@ -23,6 +25,12 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
         }
         if (transformedName.equals("cpw.mods.fml.client.SplashProgress")) {
             return transformSplashProgress(basicClass);
+        }
+        if (transformedName.equals("cpw.mods.fml.common.ProgressManager")) {
+            return transformProgressManager(basicClass);
+        }
+        if (transformedName.equals("cpw.mods.fml.common.ProgressManager$ProgressBar")) {
+            return transformProgressBar(basicClass);
         }
         if (name.equals("com.mumfrey.liteloader.client.api.ObjectFactoryClient")) {
             return transformObjectFactoryClient(basicClass);
@@ -64,6 +72,76 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
             }
         }
         ClassWriter cw = new ClassWriter(0);
+        classNode.accept(cw);
+        return cw.toByteArray();
+    }
+
+    private byte[] transformProgressBar(byte[] before) {
+        ClassNode classNode = new ClassNode();
+        ClassReader reader = new ClassReader(before);
+        reader.accept(classNode, 0);
+        int transformations = 0;
+
+        for (MethodNode m : classNode.methods) {
+            if (m.name.equals("step") && m.desc.equals("(Ljava/lang/String;)V")) {
+                for (AbstractInsnNode node : m.instructions.toArray()) {
+                    if (node.getOpcode() == RETURN) {
+                        InsnList callback = new InsnList();
+                        callback.add(new VarInsnNode(ALOAD, 0));
+                        callback.add(
+                                new MethodInsnNode(
+                                        INVOKESTATIC,
+                                        "alexiil/mods/load/FMLProgressTracker",
+                                        "onBarStep",
+                                        "(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V",
+                                        false));
+                        m.instructions.insertBefore(node, callback);
+                    }
+                }
+                transformations++;
+            }
+        }
+
+        if (transformations != 1) {
+            throw new IllegalStateException("BetterLoadingScreen couldn't transform FML ProgressBar properly!");
+        }
+
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        classNode.accept(cw);
+        return cw.toByteArray();
+    }
+
+    private byte[] transformProgressManager(byte[] before) {
+        ClassNode classNode = new ClassNode();
+        ClassReader reader = new ClassReader(before);
+        reader.accept(classNode, 0);
+        int transformations = 0;
+
+        for (MethodNode m : classNode.methods) {
+            if (m.name.equals("pop") && m.desc.equals("(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V")) {
+                for (AbstractInsnNode node : m.instructions.toArray()) {
+                    if (node.getOpcode() == RETURN) {
+                        InsnList callback = new InsnList();
+                        callback.add(new VarInsnNode(ALOAD, 0));
+                        callback.add(
+                                new MethodInsnNode(
+                                        INVOKESTATIC,
+                                        "alexiil/mods/load/FMLProgressTracker",
+                                        "onBarPop",
+                                        "(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V",
+                                        false));
+                        m.instructions.insertBefore(node, callback);
+                    }
+                }
+                transformations++;
+            }
+        }
+
+        if (transformations != 1) {
+            throw new IllegalStateException("BetterLoadingScreen couldn't transform FML ProgressManager properly!");
+        }
+
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         classNode.accept(cw);
         return cw.toByteArray();
     }
