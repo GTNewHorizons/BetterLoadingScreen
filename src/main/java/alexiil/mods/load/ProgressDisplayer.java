@@ -32,15 +32,7 @@ public class ProgressDisplayer {
 
         void open(Configuration cfg);
 
-        void displayProgress(String text, float percent);
-
-        default void displayProgress(String text, float percent, String subText, float subPercent) {
-            if (subText == null || subText.isEmpty()) {
-                displayProgress(text, percent);
-            } else {
-                displayProgress(text + " | " + subText, percent);
-            }
-        }
+        void displayProgress(String text, float percent, String subText, float subPercent);
 
         void close();
     }
@@ -52,23 +44,20 @@ public class ProgressDisplayer {
         @Override
         public void open(Configuration cfg) {
             frame = LoadingFrame.openWindow();
+        }
+
+        @Override
+        public void displayProgress(String text, float percent, String subText, float subPercent) {
             if (frame != null) {
-                frame.setMessage("Minecraft Forge Starting");
-                frame.setProgress(0);
+                frame.setProgress(text, percent, subText, subPercent);
             }
         }
 
         @Override
-        public void displayProgress(String text, float percent) {
-            if (frame == null) return;
-            frame.setMessage(text);
-            frame.setProgress(percent * 100F);
-            frame.repaint();
-        }
-
-        @Override
         public void close() {
-            if (frame != null) frame.dispose();
+            if (frame != null) {
+                frame.dispose();
+            }
         }
     }
 
@@ -78,8 +67,23 @@ public class ProgressDisplayer {
         public void open(Configuration cfg) {}
 
         @Override
-        public void displayProgress(String text, float percent) {
-            BetterLoadingScreen.log.info(text + " (" + (int) (percent * 100) + "%)");
+        public void displayProgress(String text, float percent, String subText, float subPercent) {
+            StringBuilder message = new StringBuilder(text)
+                    .append(" (")
+                    .append((int) (percent * 100))
+                    .append("%)");
+
+            if (subText != null && !subText.isEmpty()) {
+                message.append(" | ").append(subText);
+
+                if (!Float.isNaN(subPercent)) {
+                    message.append(" (")
+                            .append((int) (subPercent * 100))
+                            .append("%)");
+                }
+            }
+
+            BetterLoadingScreen.log.info(message.toString());
         }
 
         @Override
@@ -212,9 +216,7 @@ public class ProgressDisplayer {
     }
 
     public static void displayProgress(String text, float percent) throws IOException {
-        currentText = text;
-        currentPercent = percent;
-        displayCurrentProgress();
+        displayProgress(text, percent, null, Float.NaN);
     }
 
     public static void displayProgress(String text, float percent, String subText, float subPercent)

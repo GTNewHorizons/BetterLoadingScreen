@@ -2,7 +2,9 @@ package alexiil.mods.load;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 import cpw.mods.fml.common.ProgressManager;
 import cpw.mods.fml.common.ProgressManager.ProgressBar;
@@ -49,8 +51,8 @@ public final class FMLProgressTracker {
         }
     }
 
-    private static final String FML_LOADING_BAR = "Loading";
-    private static volatile ArrayList<ProgressBar> activeBars = new ArrayList<>();
+    private static final String FML_ROOT_BAR_TITLE = "Loading";
+    private static volatile List<ProgressBar> activeBars = Collections.emptyList();
 
     private FMLProgressTracker() {}
 
@@ -116,11 +118,14 @@ public final class FMLProgressTracker {
     }
 
     private static void refreshActiveBars() {
-        activeBars.clear();
+        List<ProgressBar> bars = new ArrayList<>();
         Iterator<ProgressBar> iterator = ProgressManager.barIterator();
+
         while (iterator.hasNext()) {
-            activeBars.add(iterator.next());
+            bars.add(iterator.next());
         }
+
+        activeBars = bars;
     }
 
     private static void displayPrimaryProgress(String text, float percent) {
@@ -153,43 +158,32 @@ public final class FMLProgressTracker {
      * Uses the first and the last active bar below the primary bar so we don't lose as much context.
      */
     private static SubProgress getSubProgress() {
-        int lifecycleIndex = -1;
-        for (int i = 0; i < activeBars.size(); i++) {
-            if (State.fromFmlTitle(activeBars.get(i).getTitle()) != null) {
-                lifecycleIndex = i;
-            }
-        }
-
+        final List<ProgressBar> bars = activeBars; // volatile snapshot
         ProgressBar first = null;
         ProgressBar last = null;
 
-        for (int i = lifecycleIndex + 1; i < activeBars.size(); i++) {
-            ProgressBar bar = activeBars.get(i);
+        for (ProgressBar bar : bars) {
             String title = bar.getTitle();
 
-            if (title == null || title.isEmpty()
-                    || FML_LOADING_BAR.equals(title)
-                    || State.fromFmlTitle(title) != null) {
-                continue;
-            }
+            if (title == null || title.isEmpty()) continue;
+            if (FML_ROOT_BAR_TITLE.equals(title) || State.fromFmlTitle(title) != null) continue;
 
             if (first == null) first = bar;
             last = bar;
         }
-
         if (last == null) return null;
 
-        StringBuilder text = new StringBuilder(first.getTitle());
-        if (last != first && !last.getTitle().equals(first.getTitle())) {
-            text.append(" - ").append(last.getTitle());
+        float percent = last.getSteps() > 0 ? (float) last.getStep() / last.getSteps() : Float.NaN;
+        if (first == last) {
+            return new SubProgress(first.getTitle(), percent);
         }
 
+        StringBuilder text = new StringBuilder(first.getTitle()).append(" - ").append(last.getTitle());
         String message = last.getMessage();
         if (message != null && !message.isEmpty()) {
             text.append(": ").append(message);
         }
 
-        float percent = last.getSteps() > 0 ? (float) last.getStep() / last.getSteps() : Float.NaN;
         return new SubProgress(text.toString(), percent);
     }
 

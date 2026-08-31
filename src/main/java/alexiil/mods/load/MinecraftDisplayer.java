@@ -724,11 +724,6 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     @Override
-    public void displayProgress(String text, float percent) {
-        displayProgress(text, percent, null, Float.NaN);
-    }
-
-    @Override
     public void displayProgress(String text, float percent, String subText, float subPercent) {
         if (!threadedRendering) {
             renderProgress(text, percent, subText, subPercent);
