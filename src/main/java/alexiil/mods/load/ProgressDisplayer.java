@@ -34,6 +34,14 @@ public class ProgressDisplayer {
 
         void displayProgress(String text, float percent);
 
+        default void displayProgress(String text, float percent, String subText, float subPercent) {
+            if (subText == null || subText.isEmpty()) {
+                displayProgress(text, percent);
+            } else {
+                displayProgress(text + " | " + subText, percent);
+            }
+        }
+
         void close();
     }
 
@@ -79,6 +87,10 @@ public class ProgressDisplayer {
     }
 
     private static IDisplayer displayer;
+    private static String currentText;
+    private static float currentPercent;
+    private static String currentSubText;
+    private static float currentSubPercent = Float.NaN;
     private static int clientState = -1;
     public static Configuration cfg;
     public static boolean playSound;
@@ -143,13 +155,7 @@ public class ProgressDisplayer {
             }
         };
 
-        // File fileOld = new File("./config/betterloadingscreen.cfg");
-        // File fileNew = new File("./config/BetterLoadingScreen/config.cfg");
         File fileOld = new File("./config/Betterloadingscreen/betterloadingscreen.cfg");
-
-        /*
-         * if (fileOld.exists()) cfg = new Configuration(fileOld); else cfg = new Configuration(fileNew);
-         */
         String n = System.lineSeparator();
         cfg = new Configuration(fileOld);
 
@@ -206,6 +212,37 @@ public class ProgressDisplayer {
     }
 
     public static void displayProgress(String text, float percent) throws IOException {
+        currentText = text;
+        currentPercent = percent;
+        displayCurrentProgress();
+    }
+
+    public static void displayProgress(String text, float percent, String subText, float subPercent)
+            throws IOException {
+        currentText = text;
+        currentPercent = percent;
+        currentSubText = subText;
+        currentSubPercent = subPercent;
+        displayCurrentProgress();
+    }
+
+    public static void displaySubProgress(String text, float percent) throws IOException {
+        currentSubText = text;
+        currentSubPercent = percent;
+        displayCurrentProgress();
+    }
+
+    public static void clearSubProgress() throws IOException {
+        currentSubText = null;
+        currentSubPercent = Float.NaN;
+        if (currentText != null) {
+            displayCurrentProgress();
+        }
+    }
+
+    private static void displayCurrentProgress() throws IOException {
+        if (currentText == null) return;
+
         if (!hasTurnedSplashOff) {
             hasTurnedSplashOff = true;
             if (setForgeSplashEnabled(false)) {
@@ -217,13 +254,18 @@ public class ProgressDisplayer {
             overrideForgeSplashProgress();
             hasInitRL = true;
         }
-        displayer.displayProgress(text, percent);
+        displayer.displayProgress(currentText, currentPercent, currentSubText, currentSubPercent);
     }
 
     public static void close() throws IOException {
         if (displayer == null) return;
         displayer.close();
         displayer = null;
+        currentText = null;
+        currentPercent = 0F;
+        currentSubText = null;
+        currentSubPercent = Float.NaN;
+
         if (isClient() && playSound) {
             final Thread dingThread = new Thread() {
 

@@ -16,6 +16,11 @@ public class MinecraftDisplayerWrapper implements IDisplayer {
 
     @Override
     public void displayProgress(String text, float percent) {
+        displayProgress(text, percent, null, Float.NaN);
+    }
+
+    @Override
+    public void displayProgress(String text, float percent, String subText, float subPercent) {
         if (mcDisp == null) {
             try {
                 mcDisp = new MinecraftDisplayer();
@@ -27,7 +32,7 @@ public class MinecraftDisplayerWrapper implements IDisplayer {
             }
             cfg.save();
         }
-        if (mcDisp != null) mcDisp.displayProgress(text, percent);
+        if (mcDisp != null) mcDisp.displayProgress(text, percent, subText, subPercent);
     }
 
     @Override

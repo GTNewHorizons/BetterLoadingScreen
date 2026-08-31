@@ -93,6 +93,11 @@ public class MinecraftDisplayer implements IDisplayer {
     private int[] progressTextPos = new int[] { 0, -30 };
     private int[] progressPercentagePos = new int[] { 0, -40 };
 
+    private int[] secondaryProgressPos = new int[] { 0, 0, 194, 24, 0, -83, 188, 12 };
+    private int[] secondaryProgressPosAnimated = new int[] { 0, 24, 194, 24, 0, -83, 188, 12 };
+    private int[] secondaryProgressTextPos = new int[] { 0, -65 };
+    private int[] secondaryProgressPercentagePos = new int[] { 0, -75 };
+
     private int[] memoryPos = new int[] { 0, 0, 194, 24, 0, 48, 194, 16 };
     private int[] memoryPosAnimated = new int[] { 0, 24, 194, 24, 0, 48, 194, 16 };
 
@@ -150,8 +155,10 @@ public class MinecraftDisplayer implements IDisplayer {
      */
     private SharedDrawable loadingDrawable = null;
 
-    private String currentText = "";
-    private float currentPercent = 0;
+    private volatile String currentText = "";
+    private volatile float currentPercent = 0;
+    private volatile String currentSubText = null;
+    private volatile float currentSubPercent = Float.NaN;
 
     private boolean experimental = false;
 
@@ -551,10 +558,38 @@ public class MinecraftDisplayer implements IDisplayer {
                         intArrayToString(progressPercentagePos),
                         comment13));
 
-        String comment39 = "Color of the dynamic loading bar (use ffffff (white) if you don't want to color it)";
+        String comment14 = "Secondary loading bar position";
+        secondaryProgressPos = stringToIntArray(
+                cfg.getString("secondaryProgressBarPos", "layout", intArrayToString(secondaryProgressPos), comment14));
+
+        String comment15 = "Secondary animated loading bar position";
+        secondaryProgressPosAnimated = stringToIntArray(
+                cfg.getString(
+                        "secondaryProgressBarPosAnimated",
+                        "layout",
+                        intArrayToString(secondaryProgressPosAnimated),
+                        comment15));
+
+        String comment16 = "Secondary loading bar text position";
+        secondaryProgressTextPos = stringToIntArray(
+                cfg.getString(
+                        "secondaryProgressBarTextPos",
+                        "layout",
+                        intArrayToString(secondaryProgressTextPos),
+                        comment16));
+
+        String comment17 = "Secondary loading bar percentage position";
+        secondaryProgressPercentagePos = stringToIntArray(
+                cfg.getString(
+                        "secondaryProgressBarPercentagePos",
+                        "layout",
+                        intArrayToString(secondaryProgressPercentagePos),
+                        comment17));
+
+        String comment39 = "Color of the dynamic loading bars (use ffffff (white) if you don't want to color them)";
         loadingBarsColor = cfg.getString("loadingBarsColor", "layout", loadingBarsColor, comment39);
 
-        String comment40 = "Transparency of the dynamic loading bar";
+        String comment40 = "Transparency of the dynamic loading bars";
         loadingBarsAlpha = cfg.getFloat("loadingBarsAlpha", "layout", loadingBarsAlpha, 0, 1, comment40);
 
         String comment20 = "Whether the text should be rendered with a shadow. Recommended, unless the background is really dark";
@@ -690,14 +725,21 @@ public class MinecraftDisplayer implements IDisplayer {
 
     @Override
     public void displayProgress(String text, float percent) {
+        displayProgress(text, percent, null, Float.NaN);
+    }
+
+    @Override
+    public void displayProgress(String text, float percent, String subText, float subPercent) {
         if (!threadedRendering) {
-            renderProgress(text, percent);
+            renderProgress(text, percent, subText, subPercent);
             mc.func_147120_f();
             return;
         }
 
         currentText = text;
         currentPercent = percent;
+        currentSubText = subText;
+        currentSubPercent = subPercent;
 
         if (splashRenderThread == null) {
             try {
@@ -729,7 +771,7 @@ public class MinecraftDisplayer implements IDisplayer {
                     }
 
                     while (!MinecraftDisplayer.this.splashRenderKillSwitch) {
-                        renderProgress(currentText, currentPercent);
+                        renderProgress(currentText, currentPercent, currentSubText, currentSubPercent);
 
                         fmlMutex.acquireUninterruptibly();
                         Display.update();
@@ -759,10 +801,10 @@ public class MinecraftDisplayer implements IDisplayer {
         }
     }
 
-    private void renderProgress(String text, float percent) {
+    private void renderProgress(String text, float percent, String subText, float subPercent) {
         resetGlState();
         try {
-            displayProgressInWorkerThread(text, percent);
+            displayProgressInWorkerThread(text, percent, subText, subPercent);
         } catch (Exception e) {
             BetterLoadingScreen.log.warn("BLS splash error: ", e);
         }
@@ -789,6 +831,10 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     public void displayProgressInWorkerThread(String text, float percent) {
+        displayProgressInWorkerThread(text, percent, null, Float.NaN);
+    }
+
+    public void displayProgressInWorkerThread(String text, float percent, String subText, float subPercent) {
         if (salt) {
             displaySaltProgress(percent);
             drawMemoryUsage();
@@ -816,6 +862,38 @@ public class MinecraftDisplayer implements IDisplayer {
         renderList.add(primaryPercentageRender);
         renderList.add(primaryBarRender);
         renderList.add(primaryAnimatedBarRender);
+
+        boolean hasSubProgress = subText != null && !subText.isEmpty();
+        boolean subProgressDeterminate = hasSubProgress && !Float.isNaN(subPercent);
+        ImageRender secondaryTextRender = null;
+        ImageRender secondaryPercentageRender = null;
+        ImageRender secondaryBarRender = null;
+        ImageRender secondaryAnimatedBarRender = null;
+
+        if (hasSubProgress) {
+            secondaryTextRender = createStatusRender(secondaryProgressTextPos, "Secondary progress text");
+            renderList.add(secondaryTextRender);
+
+            if (subProgressDeterminate) {
+                secondaryPercentageRender = createPercentageRender(
+                        secondaryProgressPercentagePos,
+                        "Secondary progress percentage");
+                secondaryBarRender = createBarRender(
+                        progress,
+                        secondaryProgressPos,
+                        EType.STATIC,
+                        "Secondary progress bar");
+                secondaryAnimatedBarRender = createBarRender(
+                        progress,
+                        secondaryProgressPosAnimated,
+                        EType.DYNAMIC_PERCENTAGE,
+                        "Secondary progress fill");
+
+                renderList.add(secondaryPercentageRender);
+                renderList.add(secondaryBarRender);
+                renderList.add(secondaryAnimatedBarRender);
+            }
+        }
 
         ImageRender tipsRender = null;
         if (tipsEnabled) {
@@ -854,6 +932,15 @@ public class MinecraftDisplayer implements IDisplayer {
         drawImageRender(primaryAnimatedBarRender, null, percent);
         drawImageRender(primaryTextRender, text, percent);
         drawImageRender(primaryPercentageRender, null, percent);
+
+        if (hasSubProgress) {
+            drawImageRender(secondaryTextRender, subText, subPercent);
+            if (subProgressDeterminate) {
+                drawImageRender(secondaryBarRender, null, subPercent);
+                drawImageRender(secondaryAnimatedBarRender, null, subPercent);
+                drawImageRender(secondaryPercentageRender, null, subPercent);
+            }
+        }
 
         if (tipsRender != null) {
             drawImageRender(tipsRender, null, 0);
