@@ -72,32 +72,20 @@ public class MinecraftDisplayer implements IDisplayer {
     private boolean callAgain = false;
     private IResourcePack myPack;
     private float clearRed = 1, clearGreen = 1, clearBlue = 1;
-    private boolean hasSaidNice = false;
-    public static float lastPercent = 0;
     private List<String> alreadyUsedBGs = new ArrayList<>();
     private List<String> alreadyUsedTooltips = new ArrayList<>();
-    private String GTprogress = "betterloadingscreen:textures/GTMaterialsprogressBars.png";
     private String progress = "betterloadingscreen:textures/mainProgressBar.png";
-    private String GTprogressAnimated = "betterloadingscreen:textures/GTMaterialsprogressBars.png";
     private String progressAnimated = "betterloadingscreen:textures/mainProgressBar.png";
     private String title = "betterloadingscreen:textures/transparent.png";
     private String background = "betterloadingscreen:textures/backgrounds/01.png";
     // Coordinate format: {texture x, y, w, h, on-screen x, y, w, h}
     private int[] titlePos = new int[] { 0, 0, 256, 256, 0, 50, 187, 145 };
-    /*
-     * private int[] GTprogressPos = new int[] {0, 0, 172, 12, 0, -83, 172, 6}; private int[] GTprogressPosAnimated =
-     * new int[] {0, 12, 172, 12, 0, -83, 172, 6};
-     */
-    private int[] GTprogressPos = new int[] { 0, 0, 194, 24, 0, -83, 188, 12 };
-    private int[] GTprogressPosAnimated = new int[] { 0, 24, 194, 24, 0, -83, 188, 12 };
     private int[] progressPos = new int[] { 0, 0, 194, 24, 0, -50, 194, 16 };
     private int[] progressPosAnimated = new int[] { 0, 24, 194, 24, 0, -50, 194, 16 };
     private int[] memoryPos = new int[] { 0, 0, 194, 24, 0, 48, 194, 16 };
     private int[] memoryPosAnimated = new int[] { 0, 24, 194, 24, 0, 48, 194, 16 };
     private int[] progressTextPos = new int[] { 0, -30 };
     private int[] progressPercentagePos = new int[] { 0, -40 };
-    private int[] GTprogressTextPos = new int[] { 0, -65 };
-    private int[] GTprogressPercentagePos = new int[] { 0, -75 };
     private int[] tipsTextPos = new int[] { 0, 5 };
     private String baseTipsTextPos = "BOTTOM_CENTER";
     private boolean tipsEnabled = true;
@@ -147,10 +135,6 @@ public class MinecraftDisplayer implements IDisplayer {
 
     private boolean saltBGhasBeenRendered = false;
 
-    public static boolean isNice = false;
-    public static boolean isRegisteringGTmaterials = false;
-    public static boolean isReplacingVanillaMaterials = false;
-    public static boolean isRegisteringBartWorks = false;
     public static volatile boolean blending = false;
     public static volatile boolean blendingJustSet = false;
     public static volatile float blendAlpha = 1F;
@@ -179,10 +163,6 @@ public class MinecraftDisplayer implements IDisplayer {
     private float currentPercent = 0;
 
     private boolean experimental = false;
-
-    public static float getLastPercent() {
-        return lastPercent;
-    }
 
     public static void playFinishedSound() {
         SoundHandler soundHandler = Minecraft.getMinecraft().getSoundHandler();
@@ -585,39 +565,10 @@ public class MinecraftDisplayer implements IDisplayer {
                         intArrayToString(progressPercentagePos),
                         comment13));
 
-        // Material Loading Bar Static
-        String comment14 = "Path to materials loading bar";
-        GTprogress = cfg.getString("materialProgressBar", "layout", GTprogress, comment14);
-        String comment15 = "Material loading bar position";
-        GTprogressPos = stringToIntArray(
-                cfg.getString("GTProgressBarPos", "layout", intArrayToString(GTprogressPos), comment15));
-        // Material Loading Bar Animated
-        String comment16 = "Path to animated materials loading bar";
-        GTprogressAnimated = cfg.getString("materialProgressBarAnimated", "layout", GTprogress, comment16);
-        String comment17 = "Material animated loading bar position";
-        GTprogressPosAnimated = stringToIntArray(
-                cfg.getString(
-                        "GTProgressBarPosAnimated",
-                        "layout",
-                        intArrayToString(GTprogressPosAnimated),
-                        comment17));
-        // Material Loading Bar Text
-        String comment18 = "Material loading bar text position. The two values are for position (x and y).";
-        GTprogressTextPos = stringToIntArray(
-                cfg.getString("materialProgressBarTextPos", "layout", intArrayToString(GTprogressTextPos), comment18));
-        // Main Loading Bar Percentage
-        String comment19 = "Material loading bar percentage position";
-        GTprogressPercentagePos = stringToIntArray(
-                cfg.getString(
-                        "materialProgressBarPercentagePos",
-                        "layout",
-                        intArrayToString(GTprogressPercentagePos),
-                        comment19));
-
-        // Color of the two dynamic bars
-        String comment39 = "color of main and GT material dynamic loading bar (Use ffffff (white)) if you don't want to color it";
+        // Color of the dynamic loading bar
+        String comment39 = "Color of the dynamic loading bar (use ffffff (white) if you don't want to color it)";
         loadingBarsColor = cfg.getString("loadingBarsColor", "layout", loadingBarsColor, comment39);
-        String comment40 = "Transparency of main and GT material dynamic loading bar";
+        String comment40 = "Transparency of the dynamic loading bar";
         loadingBarsAlpha = cfg.getFloat("loadingBarsAlpha", "layout", loadingBarsAlpha, 0, 1, comment40);
 
         // Some text properties
@@ -731,10 +682,7 @@ public class MinecraftDisplayer implements IDisplayer {
 
                     @Override
                     public void run() {
-                        if (!blending /*
-                                       * && !isRegisteringBartWorks && !isRegisteringGTmaterials &&
-                                       * !isReplacingVanillaMaterials
-                                       */) {
+                        if (!blending) {
                             MinecraftDisplayer.blendingJustSet = true;
                             MinecraftDisplayer.blendAlpha = 1;
                             MinecraftDisplayer.blendStartMillis = System.currentTimeMillis();
@@ -868,157 +816,6 @@ public class MinecraftDisplayer implements IDisplayer {
 
     public void displayProgressInWorkerThread(String text, float percent) {
         if (!salt) {
-            /*
-             * if (tipsEnabled && ((!isRegisteringBartWorks && !isRegisteringGTmaterials && !isReplacingVanillaMaterials
-             * && tipCounter > tipsChangeFrequency) || ((isRegisteringBartWorks || isRegisteringGTmaterials ||
-             * isReplacingVanillaMaterials) && tipCounter > tipsChangeFrequency*secondBarToolTipMultiplier))) {
-             * tipCounter = 0; tip = randomTooltip(tip); }
-             */
-            if (alexiil.mods.load.MinecraftDisplayer.isRegisteringGTmaterials || isReplacingVanillaMaterials
-                    || isRegisteringBartWorks) {
-                if (!tipsEnabled) {
-                    images = new ImageRender[11];
-                    nonStaticElementsToGo = 10;
-                } else {
-                    images = new ImageRender[12];
-                    nonStaticElementsToGo = 11;
-                }
-                // background
-                if (!background.equals("")) {
-                    images[0] = new ImageRender(
-                            background,
-                            EPosition.TOP_LEFT,
-                            EType.STATIC_BLENDED,
-                            new Area(0, 0, 256, 256),
-                            new Area(0, 0, 0, 0));
-                } else {
-                    images[0] = new ImageRender(
-                            "betterloadingscreen:textures/transparent.png",
-                            EPosition.TOP_LEFT,
-                            EType.STATIC,
-                            new Area(0, 0, 256, 256),
-                            new Area(0, 0, 10, 10));
-                }
-                // Logo
-                if (!title.equals("")) {
-                    images[1] = new ImageRender(
-                            title,
-                            EPosition.CENTER,
-                            EType.STATIC,
-                            new Area(titlePos[0], titlePos[1], titlePos[2], titlePos[3]),
-                            new Area(titlePos[4], titlePos[5], titlePos[6], titlePos[7]));
-                } else {
-                    images[1] = new ImageRender(
-                            "betterloadingscreen:textures/transparent.png",
-                            EPosition.TOP_LEFT,
-                            EType.STATIC,
-                            new Area(0, 0, 256, 256),
-                            new Area(0, 0, 10, 10));
-                }
-                // GT progress text
-                images[2] = new ImageRender(
-                        fontTexture,
-                        EPosition.CENTER,
-                        EType.DYNAMIC_TEXT_STATUS,
-                        null,
-                        new Area(GTprogressTextPos[0], GTprogressTextPos[1], 0, 0),
-                        "ffffff",
-                        null,
-                        "");
-                // GT progress percentage text
-                images[3] = new ImageRender(
-                        fontTexture,
-                        EPosition.CENTER,
-                        EType.DYNAMIC_TEXT_PERCENTAGE,
-                        null,
-                        new Area(GTprogressPercentagePos[0], GTprogressPercentagePos[1], 0, 0),
-                        "ffffff",
-                        null,
-                        "");
-                // Static NORMAL bar image
-                images[4] = new ImageRender(
-                        progress,
-                        EPosition.CENTER,
-                        EType.STATIC,
-                        new Area(progressPos[0], progressPos[1], progressPos[2], progressPos[3]),
-                        new Area(progressPos[4], progressPos[5], progressPos[6], progressPos[7]));
-                // Dynamic NORMAL bar image (yellow thing)
-                images[5] = new ImageRender(
-                        progress,
-                        EPosition.CENTER,
-                        EType.DYNAMIC_PERCENTAGE,
-                        new Area(
-                                progressPosAnimated[0],
-                                progressPosAnimated[1],
-                                progressPosAnimated[2],
-                                progressPosAnimated[3]),
-                        new Area(
-                                progressPosAnimated[4],
-                                progressPosAnimated[5],
-                                progressPosAnimated[6],
-                                progressPosAnimated[7]));
-                // NORMAL progress text
-                images[6] = new ImageRender(
-                        fontTexture,
-                        EPosition.CENTER,
-                        EType.DYNAMIC_TEXT_STATUS,
-                        null,
-                        new Area(progressTextPos[0], progressTextPos[1], 0, 0),
-                        "ffffff",
-                        null,
-                        "");
-                // NORMAL progress percentage text
-                images[7] = new ImageRender(
-                        fontTexture,
-                        EPosition.CENTER,
-                        EType.DYNAMIC_TEXT_PERCENTAGE,
-                        null,
-                        new Area(progressPercentagePos[0], progressPercentagePos[1], 0, 0),
-                        "ffffff",
-                        null,
-                        "");
-                // Static GT bar image
-                images[8] = new ImageRender(
-                        GTprogress,
-                        EPosition.CENTER,
-                        EType.STATIC,
-                        new Area(GTprogressPos[0], GTprogressPos[1], GTprogressPos[2], GTprogressPos[3]),
-                        new Area(GTprogressPos[4], GTprogressPos[5], GTprogressPos[6], GTprogressPos[7]));
-                // Dynamic GT bar image (yellow thing)
-                images[9] = new ImageRender(
-                        GTprogress,
-                        EPosition.CENTER,
-                        EType.DYNAMIC_PERCENTAGE,
-                        new Area(
-                                GTprogressPosAnimated[0],
-                                GTprogressPosAnimated[1],
-                                GTprogressPosAnimated[2],
-                                GTprogressPosAnimated[3]),
-                        new Area(
-                                GTprogressPosAnimated[4],
-                                GTprogressPosAnimated[5],
-                                GTprogressPosAnimated[6],
-                                GTprogressPosAnimated[7]));
-                ///
-                if (!tipsEnabled) {
-                    // Hmmm no idea what that is, maybe the thing that clears the screen
-                    images[10] = new ImageRender(null, null, EType.CLEAR_COLOUR, null, null, "ffffff", null, "");
-                } else {
-                    // Tips text
-                    images[10] = new ImageRender(
-                            fontTexture,
-                            EPosition.valueOf(baseTipsTextPos),
-                            EType.TIPS_TEXT,
-                            null,
-                            new Area(tipsTextPos[0], tipsTextPos[1], 0, 0),
-                            "000000",
-                            tip,
-                            "");
-                    // Hmmm no idea what that is, maybe the thing that clears the screen
-                    images[11] = new ImageRender(null, null, EType.CLEAR_COLOUR, null, null, "ffffff", null, "");
-                }
-                //
-            } else {
                 if (!tipsEnabled) {
                     images = new ImageRender[7];
                     nonStaticElementsToGo = 6;
@@ -1114,7 +911,6 @@ public class MinecraftDisplayer implements IDisplayer {
                             "");
                     images[7] = new ImageRender(null, null, EType.CLEAR_COLOUR, null, null, "ffffff", null, "");
                 }
-            }
         } else {
             shouldGLClear = false;
             textShadow = false;
@@ -1145,40 +941,14 @@ public class MinecraftDisplayer implements IDisplayer {
 
         preDisplayScreen();
 
-        int imageCounter = 0;
-
-        if (!isRegisteringGTmaterials && !isReplacingVanillaMaterials && !isRegisteringBartWorks) {
-            lastPercent = percent;
-        }
-
         for (ImageRender image : images) {
             // Warning: do not add underline/strikethrough styling to the text, as that can cause Tesselator data races
             // between threads
             if (salt) {
                 drawImageRender(image, "Minecraft is loading, please wait...", percent);
-            } else if (image != null && !(imageCounter > 4
-                    && (isRegisteringGTmaterials || isReplacingVanillaMaterials || isRegisteringBartWorks)
-                    && imageCounter < 9)) {
-                        drawImageRender(image, text, percent);
-                    } else
-                if (image != null && isRegisteringGTmaterials && !isNice) {
-                    drawImageRender(image, " Post Initialization: Registering Gregtech materials", lastPercent);
-
-                } else if (image != null && isRegisteringGTmaterials && isNice) {
-                    drawImageRender(image, " Post Initialization: Registering nice GregTech materials", lastPercent);
-                    if (!hasSaidNice) {
-                        hasSaidNice = true;
-                        BetterLoadingScreen.log.info("Yeah, that's nice, funni number");
-                    }
-                } else if (isReplacingVanillaMaterials) {
-                    drawImageRender(
-                            image,
-                            " Post Initialization: GregTech replacing Vanilla materials in recipes",
-                            lastPercent);
-                } else if (isRegisteringBartWorks) {
-                    drawImageRender(image, " Post Initialization: Registering BartWorks materials", lastPercent);
-                }
-            imageCounter++;
+            } else if (image != null) {
+                drawImageRender(image, text, percent);
+            }
         }
 
         // Draw memory usage bar
