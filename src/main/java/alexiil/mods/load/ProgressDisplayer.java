@@ -68,18 +68,13 @@ public class ProgressDisplayer {
 
         @Override
         public void displayProgress(String text, float percent, String subText, float subPercent) {
-            StringBuilder message = new StringBuilder(text)
-                    .append(" (")
-                    .append((int) (percent * 100))
-                    .append("%)");
+            StringBuilder message = new StringBuilder(text).append(" (").append((int) (percent * 100)).append("%)");
 
             if (subText != null && !subText.isEmpty()) {
                 message.append(" | ").append(subText);
 
                 if (!Float.isNaN(subPercent)) {
-                    message.append(" (")
-                            .append((int) (subPercent * 100))
-                            .append("%)");
+                    message.append(" (").append((int) (subPercent * 100)).append("%)");
                 }
             }
 
