@@ -23,6 +23,7 @@ public final class FMLProgressTracker {
         FINAL_LOADING("reloading_resource_packs", "Reloading Resource Packs", null);
 
         public static final Stage[] VALUES = values();
+        public static final float PROGRESS_SPAN = 1F / (VALUES.length - 1);
 
         private final String nameKey;
         private final String fallbackName;
@@ -52,7 +53,11 @@ public final class FMLProgressTracker {
         }
     }
 
-    // The first bar is always "Loading", the second bar is lifecycle step (Construction / PreInitialization / ...)
+    // The first bar is always "Loading"
+    private static final int FML_ROOT_BAR_INDEX = 0;
+    // The second bar is normally the lifecycle stage, but it can be popped before the next stage begins.
+    // A mod may report another bar in between, but it must be popped before the next lifecycle stage is pushed.
+    // Otherwise, even FML's own progress bar renderer would be broken
     private static final int FML_LIFECYCLE_BAR_INDEX = 1;
     private static volatile List<ProgressBar> activeBars = Collections.emptyList();
 
@@ -82,8 +87,7 @@ public final class FMLProgressTracker {
 
         int steps = Math.max(1, bar.getSteps());
         int completedSteps = Math.max(0, bar.getStep() - 1);
-        float stageSize = 1F / (Stage.VALUES.length - 1);
-        float percent = stage.ordinal() * stageSize + stageSize * completedSteps / steps;
+        float percent = (stage.ordinal() + (float) completedSteps / steps) * Stage.PROGRESS_SPAN;
 
         String text = stage.translate();
         String message = bar.getMessage();
@@ -91,7 +95,7 @@ public final class FMLProgressTracker {
             text += ": " + Translation.translate("betterloadingscreen.loading", "loading") + " " + message;
         }
 
-        displayPrimaryProgress(text, percent);
+        displayProgress(text, percent);
     }
 
     /**
@@ -100,22 +104,21 @@ public final class FMLProgressTracker {
     public static void onBarPop(ProgressBar bar) {
         if (!FMLLaunchHandler.side().isClient()) return;
 
+        Stage poppedStage = Stage.fromProgressBar(bar);
         refreshActiveBars();
 
-        Stage stage = Stage.fromProgressBar(bar);
-        if (stage == null) {
+        if (poppedStage == null) {
             displaySubProgress();
             return;
         }
 
-        if (stage == Stage.LOAD_COMPLETE) {
-            displayPrimaryProgress(Stage.FINAL_LOADING.translate(), 1F);
+        if (poppedStage == Stage.LOAD_COMPLETE) {
+            displayProgress(Stage.FINAL_LOADING.translate(), 1F);
         } else {
             // The next phase may not begin immediately after this bar is popped, so show only the completed stage
             // without the last processed mod name, to avoid misleading users into thinking that mod caused a freeze.
-            float stageSize = 1F / (Stage.VALUES.length - 1);
-            float percent = (stage.ordinal() + 1) * stageSize;
-            displayPrimaryProgress(stage.translate(), percent);
+            float percent = (poppedStage.ordinal() + 1) * Stage.PROGRESS_SPAN;
+            displayProgress(poppedStage.translate(), percent);
         }
     }
 
@@ -130,7 +133,7 @@ public final class FMLProgressTracker {
         activeBars = bars;
     }
 
-    private static void displayPrimaryProgress(String text, float percent) {
+    private static void displayProgress(String text, float percent) {
         SubProgress subProgress = getSubProgress();
         try {
             if (subProgress == null) {
@@ -164,11 +167,13 @@ public final class FMLProgressTracker {
         ProgressBar first = null;
         ProgressBar last = null;
 
-        for (int i = FML_LIFECYCLE_BAR_INDEX + 1; i < bars.size(); i++) {
+        for (int i = FML_ROOT_BAR_INDEX + 1; i < bars.size(); i++) {
             ProgressBar bar = bars.get(i);
-            String title = bar.getTitle();
+            if (Stage.fromProgressBar(bar) != null) continue;
 
+            String title = bar.getTitle();
             if (title == null || title.isEmpty()) continue;
+
             if (first == null) first = bar;
             last = bar;
         }
