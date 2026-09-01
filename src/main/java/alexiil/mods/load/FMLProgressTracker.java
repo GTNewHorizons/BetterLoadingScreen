@@ -12,7 +12,7 @@ import cpw.mods.fml.relauncher.FMLLaunchHandler;
 
 public final class FMLProgressTracker {
 
-    public enum State {
+    public enum Stage {
 
         CONSTRUCT("construction", "Construction", "Construction"),
         PRE_INIT("pre_initialization", "Pre Initialization", "PreInitialization"),
@@ -22,14 +22,14 @@ public final class FMLProgressTracker {
         LOAD_COMPLETE("completed", "Completed", "LoadComplete"),
         FINAL_LOADING("reloading_resource_packs", "Reloading Resource Packs", null);
 
-        public static final State[] VALUES = values();
+        public static final Stage[] VALUES = values();
 
         private final String nameKey;
         private final String fallbackName;
         private final String fmlTitle;
         private String translatedName = null;
 
-        State(String nameKey, String fallbackName, String fmlTitle) {
+        Stage(String nameKey, String fallbackName, String fmlTitle) {
             this.nameKey = nameKey;
             this.fallbackName = fallbackName;
             this.fmlTitle = fmlTitle;
@@ -42,16 +42,18 @@ public final class FMLProgressTracker {
             return translatedName;
         }
 
-        public static State fromFmlTitle(String title) {
-            if (title == null) return null;
-            for (State state : VALUES) {
-                if (title.equals(state.fmlTitle)) return state;
+        public static Stage fromProgressBar(ProgressBar bar) {
+            if (activeBars.size() <= FML_LIFECYCLE_BAR_INDEX) return null;
+            if (activeBars.get(FML_LIFECYCLE_BAR_INDEX) != bar) return null;
+            for (Stage stage : VALUES) {
+                if (bar.getTitle().equals(stage.fmlTitle)) return stage;
             }
             return null;
         }
     }
 
-    private static final String FML_ROOT_BAR_TITLE = "Loading";
+    // The first bar is always "Loading", the second bar is lifecycle step (Construction / PreInitialization / ...)
+    private static final int FML_LIFECYCLE_BAR_INDEX = 1;
     private static volatile List<ProgressBar> activeBars = Collections.emptyList();
 
     private FMLProgressTracker() {}
@@ -72,18 +74,18 @@ public final class FMLProgressTracker {
     public static void onBarStep(ProgressBar bar) {
         if (!FMLLaunchHandler.side().isClient()) return;
 
-        State state = State.fromFmlTitle(bar.getTitle());
-        if (state == null) {
+        Stage stage = Stage.fromProgressBar(bar);
+        if (stage == null) {
             displaySubProgress();
             return;
         }
 
         int steps = Math.max(1, bar.getSteps());
         int completedSteps = Math.max(0, bar.getStep() - 1);
-        float stateSize = 1F / (State.VALUES.length - 1);
-        float percent = state.ordinal() * stateSize + stateSize * completedSteps / steps;
+        float stageSize = 1F / (Stage.VALUES.length - 1);
+        float percent = stage.ordinal() * stageSize + stageSize * completedSteps / steps;
 
-        String text = state.translate();
+        String text = stage.translate();
         String message = bar.getMessage();
         if (message != null && !message.isEmpty()) {
             text += ": " + Translation.translate("betterloadingscreen.loading", "loading") + " " + message;
@@ -100,20 +102,20 @@ public final class FMLProgressTracker {
 
         refreshActiveBars();
 
-        State state = State.fromFmlTitle(bar.getTitle());
-        if (state == null) {
+        Stage stage = Stage.fromProgressBar(bar);
+        if (stage == null) {
             displaySubProgress();
             return;
         }
 
-        if (state == State.LOAD_COMPLETE) {
-            displayPrimaryProgress(State.FINAL_LOADING.translate(), 1F);
+        if (stage == Stage.LOAD_COMPLETE) {
+            displayPrimaryProgress(Stage.FINAL_LOADING.translate(), 1F);
         } else {
             // The next phase may not begin immediately after this bar is popped, so show only the completed stage
             // without the last processed mod name, to avoid misleading users into thinking that mod caused a freeze.
-            float stateSize = 1F / (State.VALUES.length - 1);
-            float percent = (state.ordinal() + 1) * stateSize;
-            displayPrimaryProgress(state.translate(), percent);
+            float stageSize = 1F / (Stage.VALUES.length - 1);
+            float percent = (stage.ordinal() + 1) * stageSize;
+            displayPrimaryProgress(stage.translate(), percent);
         }
     }
 
@@ -162,28 +164,27 @@ public final class FMLProgressTracker {
         ProgressBar first = null;
         ProgressBar last = null;
 
-        for (ProgressBar bar : bars) {
+        for (int i = FML_LIFECYCLE_BAR_INDEX + 1; i < bars.size(); i++) {
+            ProgressBar bar = bars.get(i);
             String title = bar.getTitle();
 
             if (title == null || title.isEmpty()) continue;
-            if (FML_ROOT_BAR_TITLE.equals(title) || State.fromFmlTitle(title) != null) continue;
-
             if (first == null) first = bar;
             last = bar;
         }
         if (last == null) return null;
 
-        float percent = last.getSteps() > 0 ? (float) last.getStep() / last.getSteps() : Float.NaN;
-        if (first == last) {
-            return new SubProgress(first.getTitle(), percent);
+        StringBuilder text = new StringBuilder(first.getTitle());
+        if (last != first) {
+            text.append(" - ").append(last.getTitle());
         }
 
-        StringBuilder text = new StringBuilder(first.getTitle()).append(" - ").append(last.getTitle());
         String message = last.getMessage();
         if (message != null && !message.isEmpty()) {
             text.append(": ").append(message);
         }
 
+        float percent = last.getSteps() > 0 ? (float) last.getStep() / last.getSteps() : Float.NaN;
         return new SubProgress(text.toString(), percent);
     }
 
