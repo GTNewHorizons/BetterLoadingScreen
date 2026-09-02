@@ -6,8 +6,9 @@ import alexiil.mods.load.ProgressDisplayer.IDisplayer;
 
 public class MinecraftDisplayerWrapper implements IDisplayer {
 
-    private MinecraftDisplayer mcDisp;
+    private MinecraftDisplayer mcDisplayer;
     private Configuration cfg;
+    private boolean opening;
 
     @Override
     public void open(Configuration cfg) {
@@ -16,23 +17,30 @@ public class MinecraftDisplayerWrapper implements IDisplayer {
 
     @Override
     public void displayProgress(String text, float percent, String subText, float subPercent) {
-        if (mcDisp == null) {
-            try {
-                mcDisp = new MinecraftDisplayer();
-                mcDisp.open(cfg);
-            } catch (Throwable t) {
-                BetterLoadingScreen.log.error("Failed to load Minecraft Displayer!");
-                t.printStackTrace();
-                mcDisp = null;
-            }
-            cfg.save();
+        if (mcDisplayer != null) {
+            mcDisplayer.displayProgress(text, percent, subText, subPercent);
+            return;
         }
-        if (mcDisp != null) mcDisp.displayProgress(text, percent, subText, subPercent);
+
+        // newDisplayer.open() can report FML progress while refreshing resources, which re-enters this method
+        if (opening) return;
+
+        opening = true;
+        try {
+            MinecraftDisplayer newDisplayer = new MinecraftDisplayer();
+            newDisplayer.open(cfg);
+            mcDisplayer = newDisplayer;
+        } catch (Throwable t) {
+            BetterLoadingScreen.log.error("Failed to load Minecraft Displayer!", t);
+        } finally {
+            opening = false;
+        }
+        cfg.save();
     }
 
     @Override
     public void close() {
-        if (mcDisp != null) mcDisp.close();
+        if (mcDisplayer != null) mcDisplayer.close();
     }
 
     public static void playFinishedSound() {
