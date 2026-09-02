@@ -27,7 +27,7 @@ public class GuiPreview extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        displayer.displayProgress(debugText, debugPercent);
+        displayer.displayProgress(debugText, debugPercent, null, Float.NaN);
     }
 
     @Override

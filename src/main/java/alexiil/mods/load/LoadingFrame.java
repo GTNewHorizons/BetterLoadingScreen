@@ -3,9 +3,9 @@ package alexiil.mods.load;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
+import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -14,69 +14,27 @@ import javax.swing.JProgressBar;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
-@SuppressWarnings("serial")
 public class LoadingFrame extends JFrame {
 
-    private class ThreadIncrementer extends Thread {
+    private final JLabel primaryLabel;
+    private final JProgressBar primaryProgressBar;
 
-        private final AtomicBoolean shouldIncrement = new AtomicBoolean(true);
-        private final float from, to, diff;
-        private final long time;
-        private long timeLeft;
-
-        public ThreadIncrementer(float from, float to, long timeLeft) {
-            this.from = from;
-            this.to = to;
-            diff = to - from;
-            this.timeLeft = timeLeft;
-            this.time = timeLeft;
-        }
-
-        public void stopIncrementing() {
-            shouldIncrement.set(false);
-            incrementer = null;
-        }
-
-        @Override
-        public void run() {
-            while (timeLeft > 0 && shouldIncrement.get()) {
-                try {
-                    Thread.sleep(250);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    break;
-                }
-                timeLeft -= 250;
-                long timeDiff = time - timeLeft;
-                double percent = timeDiff / (double) time;
-                setProgress(from + percent * diff);
-                repaint();
-            }
-            if (incrementer == this) incrementer = null;
-        }
-    }
-
-    private JPanel contentPane;
-    private JLabel lblState;
-    private JProgressBar progressBar;
-    private JProgressBar GTprogressBar;
-    private ThreadIncrementer incrementer;
+    private final JPanel secondaryPanel;
+    private final JLabel secondaryLabel;
+    private final JProgressBar secondaryProgressBar;
 
     public static void setSystemLAF() {
         if (GraphicsEnvironment.isHeadless()) {
             return;
         }
-        String clsName = UIManager.getSystemLookAndFeelClassName();
+
         try {
-            UIManager.setLookAndFeel(clsName);
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Throwable t) {
-            t.printStackTrace();
+            BetterLoadingScreen.log.warn("Failed to set system look and feel", t);
         }
     }
 
-    /**
-     * Launch the application.
-     */
     public static LoadingFrame openWindow() {
         try {
             LoadingFrame frame = new LoadingFrame();
@@ -85,14 +43,15 @@ public class LoadingFrame extends JFrame {
             frame.setVisible(true);
             return frame;
         } catch (Exception e) {
-            e.printStackTrace();
+            BetterLoadingScreen.log.error("Failed to open loading window", e);
+            return null;
         }
-        return null;
     }
 
-    public static Rectangle getWindowBounds(LoadingFrame frame) {
+    private static Rectangle getWindowBounds(LoadingFrame frame) {
         Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
         Rectangle bounds = frame.getBounds();
+
         return new Rectangle(
                 (size.width - bounds.width) / 2,
                 (size.height - bounds.height) / 2,
@@ -100,51 +59,54 @@ public class LoadingFrame extends JFrame {
                 bounds.height);
     }
 
-    /**
-     * Create the frame.
-     */
     public LoadingFrame() {
         setTitle("Minecraft Loading");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setBounds(100, 100, 450, 85);
-        contentPane = new JPanel();
+        setBounds(100, 100, 450, 120);
+
+        JPanel contentPane = new JPanel(new GridLayout(2, 1, 0, 4));
         contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
         setContentPane(contentPane);
-        contentPane.setLayout(new BorderLayout(0, 0));
 
-        JPanel panel = new JPanel();
-        contentPane.add(panel, BorderLayout.NORTH);
-        panel.setLayout(new BorderLayout(0, 0));
+        JPanel primaryPanel = new JPanel(new BorderLayout());
+        primaryLabel = new JLabel("Minecraft Forge Starting");
+        primaryProgressBar = new JProgressBar(0, 100);
+        primaryProgressBar.setStringPainted(true);
 
-        lblState = new JLabel("State");
-        panel.add(lblState, BorderLayout.NORTH);
+        primaryPanel.add(primaryLabel, BorderLayout.NORTH);
+        primaryPanel.add(primaryProgressBar, BorderLayout.CENTER);
+        contentPane.add(primaryPanel);
 
-        JPanel panel_1 = new JPanel();
-        panel.add(panel_1, BorderLayout.CENTER);
-        panel_1.setLayout(new BorderLayout(0, 0));
+        secondaryPanel = new JPanel(new BorderLayout());
+        secondaryLabel = new JLabel();
+        secondaryProgressBar = new JProgressBar(0, 100);
+        secondaryProgressBar.setStringPainted(true);
 
-        progressBar = new JProgressBar();
-        GTprogressBar = new JProgressBar();
-        progressBar.setStringPainted(true);
-        GTprogressBar.setStringPainted(true);
-        panel_1.add(progressBar, BorderLayout.NORTH);
-        panel_1.add(GTprogressBar, BorderLayout.NORTH);
+        secondaryPanel.add(secondaryLabel, BorderLayout.NORTH);
+        secondaryPanel.add(secondaryProgressBar, BorderLayout.CENTER);
+        secondaryPanel.setVisible(false);
+        contentPane.add(secondaryPanel);
     }
 
-    public void setMessage(String message) {
-        lblState.setText(message);
-    }
+    public void setProgress(String text, float percent, String subText, float subPercent) {
+        primaryLabel.setText(text);
+        primaryProgressBar.setValue((int) (percent * 100F));
 
-    public void setProgress(double percent) {
-        progressBar.setValue((int) percent);
-        GTprogressBar.setValue((int) percent);
-    }
+        boolean hasSubProgress = subText != null && !subText.isEmpty();
+        secondaryPanel.setVisible(hasSubProgress);
 
-    public void setProgressIncrementing(float from, float to, long howLongFor) {
-        if (incrementer != null) {
-            incrementer.stopIncrementing();
+        if (hasSubProgress) {
+            secondaryLabel.setText(subText);
+
+            boolean indeterminate = Float.isNaN(subPercent);
+            secondaryProgressBar.setIndeterminate(indeterminate);
+
+            if (!indeterminate) {
+                secondaryProgressBar.setValue((int) (subPercent * 100F));
+            }
         }
-        incrementer = new ThreadIncrementer(from, to, howLongFor);
-        incrementer.start();
+
+        revalidate();
+        repaint();
     }
 }

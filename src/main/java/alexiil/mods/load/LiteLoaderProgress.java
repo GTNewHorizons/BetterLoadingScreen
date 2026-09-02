@@ -4,11 +4,12 @@ import java.io.IOException;
 
 import com.mumfrey.liteloader.client.gui.startup.LoadingBar;
 
+import alexiil.mods.load.FMLProgressTracker.Stage;
+
 public class LiteLoaderProgress extends LoadingBar {
 
-    private static final int NUM_STATES = FMLProgressTracker.State.VALUES.length;
-    private static final int LITE_LOADER_INIT_ORDINAL = FMLProgressTracker.State.LITE_LOADER_INIT.ordinal();
-    private static final float LITE_LOADER_START_PERCENT = LITE_LOADER_INIT_ORDINAL / (float) NUM_STATES;
+    private static final int LITE_LOADER_INIT_ORDINAL = Stage.LITE_LOADER_INIT.ordinal();
+    private static final float LITE_LOADER_START_PERCENT = LITE_LOADER_INIT_ORDINAL * Stage.PROGRESS_SPAN;
 
     private String message = "";
     private int totalLiteProgress = 0;
@@ -46,9 +47,7 @@ public class LiteLoaderProgress extends LoadingBar {
     }
 
     private void render() throws IOException {
-        float litePercent = liteProgress / (float) totalLiteProgress;
-        litePercent /= (float) NUM_STATES;
-        float percent = LITE_LOADER_START_PERCENT + litePercent;
+        float percent = LITE_LOADER_START_PERCENT + Stage.PROGRESS_SPAN * liteProgress / totalLiteProgress;
         ProgressDisplayer.displayProgress("LiteLoader: " + message, percent);
     }
 

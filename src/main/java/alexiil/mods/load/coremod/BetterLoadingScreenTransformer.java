@@ -108,10 +108,28 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
         ClassNode classNode = new ClassNode();
         ClassReader reader = new ClassReader(before);
         reader.accept(classNode, 0);
-        boolean success = false;
+        boolean pushSuccess = false;
+        boolean popSuccess = false;
 
         for (MethodNode m : classNode.methods) {
-            if (m.name.equals("pop") && m.desc.equals("(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V")) {
+            if (m.name.equals("push")
+                    && m.desc.equals("(Ljava/lang/String;IZ)Lcpw/mods/fml/common/ProgressManager$ProgressBar;")) {
+                for (AbstractInsnNode node : m.instructions.toArray()) {
+                    if (node.getOpcode() == ARETURN) {
+                        InsnList callback = new InsnList();
+                        callback.add(new InsnNode(DUP));
+                        callback.add(
+                                new MethodInsnNode(
+                                        INVOKESTATIC,
+                                        "alexiil/mods/load/FMLProgressTracker",
+                                        "onBarPush",
+                                        "(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V",
+                                        false));
+                        m.instructions.insertBefore(node, callback);
+                        pushSuccess = true;
+                    }
+                }
+            } else if (m.name.equals("pop") && m.desc.equals("(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V")) {
                 for (AbstractInsnNode node : m.instructions.toArray()) {
                     if (node.getOpcode() == RETURN) {
                         InsnList callback = new InsnList();
@@ -124,14 +142,16 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
                                         "(Lcpw/mods/fml/common/ProgressManager$ProgressBar;)V",
                                         false));
                         m.instructions.insertBefore(node, callback);
-                        success = true;
+                        popSuccess = true;
                     }
                 }
+            }
+            if (pushSuccess && popSuccess) {
                 break;
             }
         }
 
-        if (!success) {
+        if (!pushSuccess || !popSuccess) {
             throw new IllegalStateException("BetterLoadingScreen couldn't transform FML ProgressManager properly!");
         }
 
