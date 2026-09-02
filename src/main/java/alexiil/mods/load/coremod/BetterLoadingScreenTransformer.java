@@ -113,7 +113,7 @@ public class BetterLoadingScreenTransformer implements IClassTransformer, Opcode
 
         for (MethodNode m : classNode.methods) {
             if (m.name.equals("push")
-                    && m.desc.equals("(Ljava/lang/String;I)Lcpw/mods/fml/common/ProgressManager$ProgressBar;")) {
+                    && m.desc.equals("(Ljava/lang/String;IZ)Lcpw/mods/fml/common/ProgressManager$ProgressBar;")) {
                 for (AbstractInsnNode node : m.instructions.toArray()) {
                     if (node.getOpcode() == ARETURN) {
                         InsnList callback = new InsnList();
