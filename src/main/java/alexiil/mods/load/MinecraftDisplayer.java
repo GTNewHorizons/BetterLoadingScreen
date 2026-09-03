@@ -1130,11 +1130,6 @@ public class MinecraftDisplayer implements IDisplayer {
         font.onResourceManagerReload(mc.getResourceManager());
         font.setUnicodeFlag(mc.func_152349_b());
 
-        if (!preview) {
-            mc.refreshResources();
-            font.onResourceManagerReload(mc.getResourceManager());
-        }
-
         fontRenderers.put(fontTexture, font);
         return font;
     }
@@ -1359,8 +1354,7 @@ public class MinecraftDisplayer implements IDisplayer {
                 textureManager = mc.renderEngine;
             } else {
                 textureManager = mc.renderEngine = new TextureManager(mc.getResourceManager());
-                mc.refreshResources();
-                textureManager.onResourceManagerReload(mc.getResourceManager());
+
                 mc.fontRenderer = new FontRenderer(
                         mc.gameSettings,
                         new ResourceLocation("textures/font/ascii.png"),
