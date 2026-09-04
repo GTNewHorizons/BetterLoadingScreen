@@ -33,6 +33,7 @@ import net.minecraft.client.audio.SoundEventAccessorComposite;
 import net.minecraft.client.audio.SoundHandler;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.resources.IResourcePack;
@@ -43,6 +44,7 @@ import net.minecraftforge.common.config.Configuration;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.SharedDrawable;
 
 import alexiil.mods.load.ProgressDisplayer.IDisplayer;
@@ -729,8 +731,7 @@ public class MinecraftDisplayer implements IDisplayer {
 
             renderInProgress = true;
             try {
-                renderProgress(currentText, currentPercent, currentSubText, currentSubPercent);
-                mc.func_147120_f();
+                renderProgressOnMainThread();
                 lastRenderTime = System.nanoTime();
             } finally {
                 renderInProgress = false;
@@ -800,6 +801,40 @@ public class MinecraftDisplayer implements IDisplayer {
             if (splashRenderThread.getState() == Thread.State.TERMINATED) {
                 throw new IllegalStateException("BetterLoadingScreen splash thread terminated upon start");
             }
+        }
+    }
+
+    private static final int MAIN_THREAD_SAVED_GL_STATE_BITS = GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT
+            | GL_DEPTH_BUFFER_BIT
+            | GL_CURRENT_BIT
+            | GL_TEXTURE_BIT
+            | GL_TRANSFORM_BIT
+            | GL_VIEWPORT_BIT;
+
+    private void renderProgressOnMainThread() {
+        // Non-threaded rendering borrows the caller's GL context, so leave the state exactly as we found it.
+        int previousFramebuffer = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+
+        GL11.glPushAttrib(MAIN_THREAD_SAVED_GL_STATE_BITS);
+        GL11.glMatrixMode(GL11.GL_PROJECTION);
+        GL11.glPushMatrix();
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        GL11.glPushMatrix();
+
+        try {
+            OpenGlHelper.func_153171_g(OpenGlHelper.field_153198_e, 0); // glBindFramebuffer
+            OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+
+            renderProgress(currentText, currentPercent, currentSubText, currentSubPercent);
+            mc.func_147120_f(); // updateDisplay
+        } finally {
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);
+            GL11.glPopMatrix();
+            GL11.glMatrixMode(GL11.GL_PROJECTION);
+            GL11.glPopMatrix();
+
+            OpenGlHelper.func_153171_g(OpenGlHelper.field_153198_e, previousFramebuffer); // glBindFramebuffer
+            GL11.glPopAttrib();
         }
     }
 
