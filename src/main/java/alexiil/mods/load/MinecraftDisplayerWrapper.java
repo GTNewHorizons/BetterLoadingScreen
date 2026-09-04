@@ -30,6 +30,7 @@ public class MinecraftDisplayerWrapper implements IDisplayer {
             MinecraftDisplayer newDisplayer = new MinecraftDisplayer();
             newDisplayer.open(cfg);
             mcDisplayer = newDisplayer;
+            newDisplayer.displayProgress(text, percent, subText, subPercent);
         } catch (Throwable t) {
             BetterLoadingScreen.log.error("Failed to load Minecraft Displayer!", t);
         } finally {
