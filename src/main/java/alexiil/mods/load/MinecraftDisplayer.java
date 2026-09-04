@@ -1417,13 +1417,15 @@ public class MinecraftDisplayer implements IDisplayer {
                 loadingDrawable.releaseContext();
                 splashRenderThread.join();
                 Display.getDrawable().makeCurrent();
-                Minecraft.getMinecraft().resize(Display.getWidth(), Display.getHeight());
             } catch (LWJGLException | InterruptedException e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
             }
         }
 
+        if (!preview) {
+            Minecraft.getMinecraft().resize(Display.getWidth(), Display.getHeight());
+        }
         if (tipExec != null) {
             tipExec.shutdown();
         }
