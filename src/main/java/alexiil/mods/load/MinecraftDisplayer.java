@@ -119,9 +119,14 @@ public class MinecraftDisplayer implements IDisplayer {
     public static String[] randomBackgroundArray = new String[] { "betterloadingscreen:textures/backgrounds/01.png",
             "betterloadingscreen:textures/backgrounds/02.png" };
 
-    private boolean blendingEnabled = true;
+    private boolean backgroundChanging = true;
     private int changeFrequency = 40;
     private float blendTimeMillis = 2000;
+    private long nextBackgroundChangeMillis;
+    private boolean blending;
+    private long blendStartMillis;
+    private String newBlendImage = "none";
+
     private boolean shouldGLClear = false;
     private boolean salt = false;
 
@@ -132,18 +137,10 @@ public class MinecraftDisplayer implements IDisplayer {
     private boolean useImgur = false;
     private boolean saltBGhasBeenRendered = false;
 
-    public static volatile boolean blending = false;
-    public static volatile boolean blendingJustSet = false;
-    public static volatile float blendAlpha = 1F;
-    public static volatile long blendStartMillis = 0;
-    private static String newBlendImage = "none";
-
     private ImgurCacheManager imgurCacheManager = null;
 
-    private ScheduledExecutorService backgroundExec = null;
     private boolean scheduledTipExecSet = false;
     private ScheduledExecutorService tipExec = null;
-    private boolean scheduledBackgroundExecSet = false;
 
     private Thread splashRenderThread = null;
     private boolean splashRenderKillSwitch = false;
@@ -611,7 +608,7 @@ public class MinecraftDisplayer implements IDisplayer {
                         comment23));
 
         String comment24 = "Whether backgrounds should change randomly during loading. They are taken from the random background list";
-        blendingEnabled = cfg.getBoolean("backgroundChanging", "changing background", blendingEnabled, comment24);
+        backgroundChanging = cfg.getBoolean("backgroundChanging", "changing background", backgroundChanging, comment24);
 
         String comment25 = "Time in milliseconds between each image change (smooth blend).";
         blendTimeMillis = cfg
@@ -667,10 +664,6 @@ public class MinecraftDisplayer implements IDisplayer {
             BetterLoadingScreen.log.warn("Invalid loading bar color, setting default");
         }
 
-        if (salt) {
-            blendingEnabled = false;
-        }
-
         if (!preview) {
             if (!ProgressDisplayer.coreModLocation.isDirectory()) {
                 myPack = new FMLFileResourcePack(ProgressDisplayer.modContainer);
@@ -686,39 +679,22 @@ public class MinecraftDisplayer implements IDisplayer {
         if (randomBackgrounds && !salt) {
             Random rand = new Random();
             background = randomBackgroundArray[rand.nextInt(randomBackgroundArray.length)];
+            nextBackgroundChangeMillis = System.currentTimeMillis() + changeFrequency * 1000L;
 
-            /// timer
-            if (!scheduledBackgroundExecSet) {
-                scheduledBackgroundExecSet = true;
-                backgroundExec = Executors.newSingleThreadScheduledExecutor();
-                backgroundExec.scheduleAtFixedRate(new Runnable() {
+            if (useImgur) {
+                imgurCacheManager = new ImgurCacheManager();
+                imgurCacheManager.loadConfig(cfg);
 
-                    @Override
-                    public void run() {
-                        if (!blending) {
-                            MinecraftDisplayer.blendingJustSet = true;
-                            MinecraftDisplayer.blendAlpha = 1;
-                            MinecraftDisplayer.blendStartMillis = System.currentTimeMillis();
-                            MinecraftDisplayer.blending = true;
-                        }
-                    }
-                }, changeFrequency, changeFrequency, TimeUnit.SECONDS);
+                List<String> imgurBackgrounds = new ArrayList<>();
+                imgurCacheManager.setupImgurGallery(res -> {
+                    // Override the default background with the first image we get, otherwise the image will only
+                    // be visible after the first background change occurs
+                    if (imgurBackgrounds.isEmpty()) background = res.toString();
 
-                if (useImgur) {
-                    imgurCacheManager = new ImgurCacheManager();
-                    imgurCacheManager.loadConfig(cfg);
-
-                    List<String> imgurBackgrounds = new ArrayList<>();
-                    imgurCacheManager.setupImgurGallery(res -> {
-                        // Override the default background with the first image we get, otherwise the image will only
-                        // be visible after the first blend occurs
-                        if (imgurBackgrounds.isEmpty()) background = res.toString();
-
-                        // Progressively add each image to the list of random backgrounds
-                        imgurBackgrounds.add(res.toString());
-                        randomBackgroundArray = imgurBackgrounds.toArray(new String[0]);
-                    });
-                }
+                    // Progressively add each image to the list of random backgrounds
+                    imgurBackgrounds.add(res.toString());
+                    randomBackgroundArray = imgurBackgrounds.toArray(new String[0]);
+                });
             }
         }
     }
@@ -730,8 +706,7 @@ public class MinecraftDisplayer implements IDisplayer {
     @Override
     public void displayProgress(String text, float percent, String subText, float subPercent) {
         boolean mainTextChanged = !text.equals(currentText);
-        boolean subProgressCompleted = !Float.isNaN(subPercent)
-                && subPercent >= 1.0F
+        boolean subProgressCompleted = !Float.isNaN(subPercent) && subPercent >= 1.0F
                 && (Float.isNaN(currentSubPercent) || currentSubPercent < 1.0F);
 
         currentText = text;
@@ -868,6 +843,8 @@ public class MinecraftDisplayer implements IDisplayer {
             return;
         }
 
+        updateBackground();
+
         List<ImageRender> renderList = new ArrayList<>();
 
         ImageRender backgroundRender = createBackgroundRender();
@@ -975,6 +952,29 @@ public class MinecraftDisplayer implements IDisplayer {
         drawImageRender(clearRender, null, 0);
 
         drawMemoryUsage();
+    }
+
+    private void updateBackground() {
+        if (preview || !randomBackgrounds || !backgroundChanging || salt || blending) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now < nextBackgroundChangeMillis) {
+            return;
+        }
+
+        String nextBackground = randomBackground(background);
+        nextBackgroundChangeMillis = now + changeFrequency * 1000L;
+
+        if (!threadedRendering || blendTimeMillis <= 0) {
+            background = nextBackground;
+            return;
+        }
+
+        newBlendImage = nextBackground;
+        blendStartMillis = now;
+        blending = true;
     }
 
     private void displaySaltProgress(float percent) {
@@ -1275,18 +1275,8 @@ public class MinecraftDisplayer implements IDisplayer {
             case STATIC:
             case STATIC_BLENDED: {
                 if (blending && render.type == EType.STATIC_BLENDED) {
-                    if (blendingJustSet) {
-                        blendingJustSet = false;
-                        newBlendImage = randomBackground(render.resourceLocation);
-                    }
-
-                    if (blendTimeMillis < 1.f) {
-                        blendAlpha = 0.f;
-                    } else {
-                        blendAlpha = Float.max(
-                                0.f,
-                                1.0f - (float) (System.currentTimeMillis() - blendStartMillis) / blendTimeMillis);
-                    }
+                    float blendAlpha = Float
+                            .max(0.f, 1.0f - (float) (System.currentTimeMillis() - blendStartMillis) / blendTimeMillis);
 
                     if (blendAlpha <= 0.f) {
                         blending = false;
@@ -1460,9 +1450,6 @@ public class MinecraftDisplayer implements IDisplayer {
         }
         if (tipExec != null) {
             tipExec.shutdown();
-        }
-        if (backgroundExec != null) {
-            backgroundExec.shutdown();
         }
 
         getOnlyList().remove(myPack);
