@@ -723,11 +723,43 @@ public class MinecraftDisplayer implements IDisplayer {
         }
     }
 
+    private static final long MIN_MAIN_THREAD_FRAME_INTERVAL_NS = 50_000_000L;
+    private long lastRenderTime;
+    private boolean renderInProgress;
+
     @Override
     public void displayProgress(String text, float percent, String subText, float subPercent) {
+        boolean mainTextChanged = !text.equals(currentText);
+        boolean subProgressCompleted = !Float.isNaN(subPercent)
+                && subPercent >= 1.0F
+                && (Float.isNaN(currentSubPercent) || currentSubPercent < 1.0F);
+
+        currentText = text;
+        currentPercent = percent;
+        currentSubText = subText;
+        currentSubPercent = subPercent;
+
         if (!threadedRendering) {
-            renderProgress(text, percent, subText, subPercent);
-            mc.func_147120_f();
+            if (renderInProgress) {
+                return;
+            }
+
+            long now = System.nanoTime();
+            boolean rateLimitElapsed = now - lastRenderTime >= MIN_MAIN_THREAD_FRAME_INTERVAL_NS;
+
+            // Rate-limit ordinary updates, but render phase changes and sub-progress completion immediately
+            if (!mainTextChanged && !subProgressCompleted && !rateLimitElapsed) {
+                return;
+            }
+
+            renderInProgress = true;
+            try {
+                renderProgress(currentText, currentPercent, currentSubText, currentSubPercent);
+                mc.func_147120_f();
+                lastRenderTime = System.nanoTime();
+            } finally {
+                renderInProgress = false;
+            }
             return;
         }
 
