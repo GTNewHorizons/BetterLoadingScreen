@@ -64,11 +64,10 @@ public class ImgurCacheManager {
         return textureCache.get(location.getResourcePath());
     }
 
-    public void cleanUp() {
+    public synchronized void cleanUp() {
+        cancelSetup = true;
         textureCache.values().forEach(AbstractTexture::deleteGlTexture);
         textureCache.clear();
-
-        cancelSetup = true;
     }
 
     public void setupImgurGallery(Consumer<ResourceLocation> textureLocationConsumer) {
@@ -130,8 +129,9 @@ public class ImgurCacheManager {
                         return;
                     }
 
-                    synchronized (textureLocationConsumer) {
-                        textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
+                    synchronized (this) {
+                        if (!cancelSetup)
+                            textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
                     }
                 };
 
@@ -145,15 +145,17 @@ public class ImgurCacheManager {
                 throw new CompletionException(e);
             }
         }).thenRunAsync(() -> {
-            if (OFFLINE_MODE) return;
+            synchronized (this) {
+                if (OFFLINE_MODE || cancelSetup) return;
 
-            // Delete cached images that are no longer in the gallery
-            try {
-                for (String id : cachedImageIDs) {
-                    Files.deleteIfExists(getCachedImagePath(id));
+                // Delete cached images that are no longer in the gallery
+                try {
+                    for (String id : cachedImageIDs) {
+                        Files.deleteIfExists(getCachedImagePath(id));
+                    }
+                } catch (IOException e) {
+                    BetterLoadingScreen.log.error("Error while deleting unused cached imgur images", e);
                 }
-            } catch (IOException e) {
-                BetterLoadingScreen.log.error("Error while deleting unused cached imgur images", e);
             }
         });
     }
@@ -169,8 +171,8 @@ public class ImgurCacheManager {
             return;
         }
 
-        synchronized (textureLocationConsumer) {
-            textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
+        synchronized (this) {
+            if (!cancelSetup) textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
         }
     }
 
@@ -178,12 +180,15 @@ public class ImgurCacheManager {
             throws IOException {
         BufferedImage image;
         try (InputStream input = imageStream) {
+            if (cancelSetup) return;
             image = ImageIO.read(input);
         }
         if (image == null) throw new IOException("Invalid cached or downloaded imgur image: " + imageID);
-        textureCache.put(imageID, new LateInitDynamicTexture(image, image.getWidth(), image.getHeight()));
-
-        if (saveToDisk) writeImageToCache(imageID, image);
+        synchronized (this) {
+            if (cancelSetup) return;
+            if (saveToDisk) writeImageToCache(imageID, image);
+            textureCache.put(imageID, new LateInitDynamicTexture(image, image.getWidth(), image.getHeight()));
+        }
     }
 
     private void readAndCacheImageFromDisk(String imageID) throws IOException {
