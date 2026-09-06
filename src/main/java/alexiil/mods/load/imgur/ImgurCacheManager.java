@@ -85,7 +85,7 @@ public class ImgurCacheManager {
 
         CompletableFuture.runAsync(() -> {
             // Try cached images before contacting Imgur, without blocking startup on disk reads.
-            loadAnyImageFromDisk(cachedImageIDs, textureLocationConsumer);
+            loadCachedImages(cachedImageIDs, textureLocationConsumer, true);
             if (cancelSetup) return;
             try (ImgurClient client = OFFLINE_MODE ? null : new ImgurClient(appClientId, requestTimeout)) {
                 Consumer<String> imageHandler = imageID -> {
@@ -98,7 +98,7 @@ public class ImgurCacheManager {
 
                     if (cancelSetup) return;
 
-                    // Should only be the image that might have been loaded in loadAnyImageFromDisk()
+                    // Skip the first cached image if it has already been published.
                     if (textureCache.containsKey(imageID)) return;
 
                     Path imageFile = getCachedImagePath(imageID);
@@ -140,6 +140,7 @@ public class ImgurCacheManager {
                 }
             } catch (Exception e) {
                 BetterLoadingScreen.log.error("Error while fetching imgur gallery", e);
+                loadCachedImages(cachedImageIDs, textureLocationConsumer, false);
                 throw new CompletionException(e);
             }
         }).thenRunAsync(() -> {
@@ -157,13 +158,15 @@ public class ImgurCacheManager {
         });
     }
 
-    private void loadAnyImageFromDisk(List<String> cachedImageIDs, Consumer<ResourceLocation> textureLocationConsumer) {
+    private void loadCachedImages(List<String> cachedImageIDs, Consumer<ResourceLocation> textureLocationConsumer,
+            boolean firstOnly) {
         if (cachedImageIDs.isEmpty()) return;
 
         int start = ThreadLocalRandom.current().nextInt(cachedImageIDs.size());
         for (int i = 0; i < cachedImageIDs.size(); i++) {
             if (cancelSetup) return;
             String imageID = cachedImageIDs.get((start + i) % cachedImageIDs.size());
+            if (textureCache.containsKey(imageID)) continue;
             try {
                 readAndCacheImageFromDisk(imageID);
             } catch (IOException e) {
@@ -174,7 +177,7 @@ public class ImgurCacheManager {
             synchronized (this) {
                 if (!cancelSetup) textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
             }
-            return;
+            if (firstOnly) return;
         }
     }
 
