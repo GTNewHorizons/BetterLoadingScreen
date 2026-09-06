@@ -892,7 +892,7 @@ public class MinecraftDisplayer implements IDisplayer {
             primaryPercentageRender = createPercentageRender(progressPercentagePos, "Main progress percentage");
             primaryBarRender = createBarRender(progress, progressPos, EType.STATIC, "Main progress bar");
             primaryAnimatedBarRender = createBarRender(
-                    progress,
+                    progressAnimated,
                     progressPosAnimated,
                     EType.DYNAMIC_PERCENTAGE,
                     "Main progress fill");
