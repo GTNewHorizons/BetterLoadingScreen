@@ -7,11 +7,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
@@ -299,30 +297,18 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     public static String[] readTipsFile(String file) throws IOException {
-        BufferedReader reader = null;
         List<String> lines = new ArrayList<>();
-        try {
-            reader = new BufferedReader((new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))); // new
-            // BufferedReader(new
-            // FileReader(file));
-            StringBuffer inputBuffer = new StringBuffer();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (!line.trim().isEmpty() && line.charAt(0) != '#') {
                     lines.add(line);
                 }
-                inputBuffer.append(line);
-                inputBuffer.append('\n');
             }
             if (lines.size() == 0) {
                 lines.add("No tips!");
             }
-            reader.close();
-
-            FileOutputStream fileOut = new FileOutputStream(file);
-            PrintStream stream = new PrintStream(fileOut, true, "UTF-8");
-            fileOut.write(inputBuffer.toString().getBytes(StandardCharsets.UTF_8));
-            fileOut.close();
         } catch (FileNotFoundException e) {
             BetterLoadingScreen.log.error("Error while opening tips file");
             return new String[] { "Failed to load tips! If you didn't do anything, complain on the GTNH Discord" };
