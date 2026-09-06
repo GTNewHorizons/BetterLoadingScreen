@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
@@ -134,6 +135,7 @@ public class ImgurCacheManager {
                 }
             } catch (Exception e) {
                 BetterLoadingScreen.log.error("Error while fetching imgur gallery", e);
+                throw new CompletionException(e);
             }
         }).thenRunAsync(() -> {
             if (OFFLINE_MODE) return;
