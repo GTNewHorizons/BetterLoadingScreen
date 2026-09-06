@@ -10,6 +10,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -77,12 +78,10 @@ public class ImgurCacheManager {
                 Files.createDirectory(cacheFolder);
             } catch (IOException e) {
                 BetterLoadingScreen.log.error("Error while creating imgur cache directory", e);
-                return;
             }
         }
 
         List<String> cachedImageIDs = getCachedImageIDs();
-        if (cachedImageIDs == null) return;
 
         // Load any image that is already cached. This avoids waiting for the imgur api call to finish to get something
         // rendering
@@ -186,7 +185,13 @@ public class ImgurCacheManager {
         if (cancelSetup) return;
         LateInitDynamicTexture texture = new LateInitDynamicTexture(image, image.getWidth(), image.getHeight());
         if (cancelSetup) return;
-        if (saveToDisk) writeImageToCache(imageID, image);
+        if (saveToDisk) {
+            try {
+                writeImageToCache(imageID, image);
+            } catch (IOException e) {
+                BetterLoadingScreen.log.warn("Unable to cache imgur image on disk: " + imageID, e);
+            }
+        }
         synchronized (this) {
             if (cancelSetup) return;
             textureCache.put(imageID, texture);
@@ -218,7 +223,7 @@ public class ImgurCacheManager {
                     .collect(Collectors.toList());
         } catch (IOException e) {
             BetterLoadingScreen.log.error("Error while iterating imgur cache folder", e);
-            return null;
+            return new ArrayList<>();
         }
     }
 }
