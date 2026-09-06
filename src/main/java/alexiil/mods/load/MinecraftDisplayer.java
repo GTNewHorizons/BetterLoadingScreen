@@ -107,7 +107,7 @@ public class MinecraftDisplayer implements IDisplayer {
     private String tipsColor = "ffffff";
     private boolean tipsTextShadow = true;
     private int tipsChangeFrequency = 18;
-    private String tip = "";
+    private volatile String tip = "";
     private static boolean useCustomTips = false;
     private static String customTipFilename = "en_US";
 
