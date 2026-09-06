@@ -83,11 +83,10 @@ public class ImgurCacheManager {
 
         List<String> cachedImageIDs = getCachedImageIDs();
 
-        // Load any image that is already cached. This avoids waiting for the imgur api call to finish to get something
-        // rendering
-        loadAnyImageFromDisk(cachedImageIDs, textureLocationConsumer);
-
         CompletableFuture.runAsync(() -> {
+            // Try cached images before contacting Imgur, without blocking startup on disk reads.
+            loadAnyImageFromDisk(cachedImageIDs, textureLocationConsumer);
+            if (cancelSetup) return;
             try (ImgurClient client = OFFLINE_MODE ? null : new ImgurClient(appClientId, requestTimeout)) {
                 Consumer<String> imageHandler = imageID -> {
                     // This will leave behind cached images that are no longer in the gallery
