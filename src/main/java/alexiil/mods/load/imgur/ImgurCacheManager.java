@@ -161,16 +161,21 @@ public class ImgurCacheManager {
     private void loadAnyImageFromDisk(List<String> cachedImageIDs, Consumer<ResourceLocation> textureLocationConsumer) {
         if (cachedImageIDs.isEmpty()) return;
 
-        String imageID = cachedImageIDs.get(ThreadLocalRandom.current().nextInt(cachedImageIDs.size()));
-        try {
-            readAndCacheImageFromDisk(imageID);
-        } catch (IOException e) {
-            BetterLoadingScreen.log.error("Error while loading first cached imgur image", e);
-            return;
-        }
+        int start = ThreadLocalRandom.current().nextInt(cachedImageIDs.size());
+        for (int i = 0; i < cachedImageIDs.size(); i++) {
+            if (cancelSetup) return;
+            String imageID = cachedImageIDs.get((start + i) % cachedImageIDs.size());
+            try {
+                readAndCacheImageFromDisk(imageID);
+            } catch (IOException e) {
+                BetterLoadingScreen.log.warn("Skipping unreadable cached imgur image: " + imageID, e);
+                continue;
+            }
 
-        synchronized (this) {
-            if (!cancelSetup) textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
+            synchronized (this) {
+                if (!cancelSetup) textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
+            }
+            return;
         }
     }
 
