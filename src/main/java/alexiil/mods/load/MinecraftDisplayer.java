@@ -17,7 +17,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -279,42 +281,28 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     public String randomBackground(String currentBG) {
-        if (randomBackgroundArray.length == 1) {
-            return randomBackgroundArray[0];
-        }
-
-        Random rand = new Random();
-        String res = randomBackgroundArray[rand.nextInt(randomBackgroundArray.length)];
-
-        if (randomBackgroundArray.length == alreadyUsedBGs.size()) {
-            alreadyUsedBGs.clear();
-        }
-
-        while (res.equals(currentBG) || alreadyUsedBGs.contains(res)) {
-            res = randomBackgroundArray[rand.nextInt(randomBackgroundArray.length)];
-        }
-
-        alreadyUsedBGs.add(res);
-        return res;
+        return randomUnused(randomBackgroundArray, currentBG, alreadyUsedBGs);
     }
 
     public String randomTooltip(String currentTooltip) {
-        if (randomTips.length == 1) {
-            return randomTips[0];
+        return randomUnused(randomTips, currentTooltip, alreadyUsedTooltips);
+    }
+
+    private static String randomUnused(String[] options, String current, List<String> used) {
+        List<String> candidates = new ArrayList<>(new LinkedHashSet<>(Arrays.asList(options)));
+        candidates.remove(current);
+        if (candidates.isEmpty()) return current;
+
+        List<String> unused = new ArrayList<>(candidates);
+        unused.removeAll(used);
+        if (unused.isEmpty()) {
+            used.clear();
+        } else {
+            candidates = unused;
         }
 
-        Random rand = new Random();
-        String res = randomTips[rand.nextInt(randomTips.length)];
-
-        if (randomTips.length == alreadyUsedTooltips.size()) {
-            alreadyUsedTooltips.clear();
-        }
-
-        while (res.equals(currentTooltip) || alreadyUsedTooltips.contains(res)) {
-            res = randomTips[rand.nextInt(randomTips.length)];
-        }
-
-        alreadyUsedTooltips.add(res);
+        String res = candidates.get(new Random().nextInt(candidates.size()));
+        used.add(res);
         return res;
     }
 
