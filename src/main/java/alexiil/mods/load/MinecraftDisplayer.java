@@ -11,11 +11,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -351,9 +351,6 @@ public class MinecraftDisplayer implements IDisplayer {
             locale = customTipFilename;
             BetterLoadingScreen.log.info("Using custom tooltips, name: " + locale);
         }
-        // BetterLoadingScreen.log.trace("getting resource");
-        // InputStream fileContents = Minecraft.getMinecraft().getResourceManager().getResource(new
-        // ResourceLocation("betterloadingscreen:tips/tips.txt")).getInputStream();
         InputStream fileContents = null;
         try {
             fileContents = Minecraft.getMinecraft().getResourceManager()
@@ -364,25 +361,14 @@ public class MinecraftDisplayer implements IDisplayer {
             locale = "en_US";
             BetterLoadingScreen.log.info("Language not found");
         }
-        byte[] buffer = new byte[fileContents.available()];
-        fileContents.read(buffer);
-        // BetterLoadingScreen.log.trace("got resource?");
-        File dir = new File("./config/Betterloadingscreen/tips");
-        if (!dir.exists()) {
-            BetterLoadingScreen.log.warn("tips dir does not exist");
-            dir.mkdirs();
-        } else {
-            BetterLoadingScreen.log.debug("tips dir exists");
+        try (InputStream input = fileContents) {
+            File dest = new File("./config/Betterloadingscreen/tips/" + locale + ".txt");
+            if (!dest.exists()) {
+                Files.createDirectories(dest.toPath().getParent());
+                Files.copy(input, dest.toPath());
+            }
+            return dest;
         }
-        BetterLoadingScreen.log.debug("Current locale: " + locale);
-        File dest = new File("./config/Betterloadingscreen/tips/" + locale + ".txt");
-        if (dest.exists()) return dest;
-        BetterLoadingScreen.log.debug("dest set");
-        OutputStream outStream = new FileOutputStream(dest);
-        // BetterLoadingScreen.log.trace("outputstream set");
-        outStream.write(buffer);
-        // BetterLoadingScreen.log.trace("buffer write");
-        return dest;
     }
 
     public void handleTips() {
