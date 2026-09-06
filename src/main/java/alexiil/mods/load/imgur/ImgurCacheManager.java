@@ -107,13 +107,17 @@ public class ImgurCacheManager {
                     Path imageFile = getCachedImagePath(imageID);
 
                     try {
-                        if (Files.exists(getCachedImagePath(imageID))) {
-                            // Read from disk
-                            readAndCacheImageFromStream(
-                                    imageID,
-                                    new BufferedInputStream(Files.newInputStream(imageFile), 1024 * 1024),
-                                    false);
-                        } else {
+                        boolean loadedFromDisk = false;
+                        if (Files.exists(imageFile)) {
+                            try {
+                                readAndCacheImageFromDisk(imageID);
+                                loadedFromDisk = true;
+                            } catch (IOException e) {
+                                if (OFFLINE_MODE) throw e;
+                                BetterLoadingScreen.log.warn("Retrying invalid cached imgur image: " + imageID, e);
+                            }
+                        }
+                        if (!loadedFromDisk) {
                             if (OFFLINE_MODE) return;
 
                             readAndCacheImageFromStream(
@@ -179,7 +183,7 @@ public class ImgurCacheManager {
         if (image == null) throw new IOException("Invalid cached or downloaded imgur image: " + imageID);
         textureCache.put(imageID, new LateInitDynamicTexture(image, image.getWidth(), image.getHeight()));
 
-        if (saveToDisk && Files.notExists(getCachedImagePath(imageID))) writeImageToCache(imageID, image);
+        if (saveToDisk) writeImageToCache(imageID, image);
     }
 
     private void readAndCacheImageFromDisk(String imageID) throws IOException {
