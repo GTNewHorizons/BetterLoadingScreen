@@ -6,6 +6,7 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -171,7 +172,10 @@ public class ImgurCacheManager {
 
     private void readAndCacheImageFromStream(String imageID, InputStream imageStream, boolean saveToDisk)
             throws IOException {
-        BufferedImage image = ImageIO.read(imageStream);
+        BufferedImage image;
+        try (InputStream input = imageStream) {
+            image = ImageIO.read(input);
+        }
         if (image == null) throw new IOException("Invalid cached or downloaded imgur image: " + imageID);
         textureCache.put(imageID, new LateInitDynamicTexture(image, image.getWidth(), image.getHeight()));
 
@@ -186,10 +190,11 @@ public class ImgurCacheManager {
     }
 
     private void writeImageToCache(String imageID, BufferedImage image) throws IOException {
-        ImageIO.write(
-                image,
-                "png",
-                new BufferedOutputStream(Files.newOutputStream(getCachedImagePath(imageID)), 1024 * 1024));
+        try (OutputStream output = new BufferedOutputStream(
+                Files.newOutputStream(getCachedImagePath(imageID)),
+                1024 * 1024)) {
+            ImageIO.write(image, "png", output);
+        }
     }
 
     private static Path getCachedImagePath(String imageID) {
