@@ -170,6 +170,7 @@ public class ImgurCacheManager {
     private void readAndCacheImageFromStream(String imageID, InputStream imageStream, boolean saveToDisk)
             throws IOException {
         BufferedImage image = ImageIO.read(imageStream);
+        if (image == null) throw new IOException("Invalid cached or downloaded imgur image: " + imageID);
         textureCache.put(imageID, new LateInitDynamicTexture(image, image.getWidth(), image.getHeight()));
 
         if (saveToDisk && Files.notExists(getCachedImagePath(imageID))) writeImageToCache(imageID, image);
