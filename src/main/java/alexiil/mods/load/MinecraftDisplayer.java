@@ -667,7 +667,7 @@ public class MinecraftDisplayer implements IDisplayer {
 
     private static String validateTextColor(String color) {
         color = color.trim();
-        if (color.matches("[0-9a-fA-F]{6}")) return color;
+        if (color.matches("[0-9a-fA-F]{1,6}")) return String.format("%06x", Integer.parseInt(color, 16));
         BetterLoadingScreen.log.warn("Invalid text color '{}', using white", color);
         return "ffffff";
     }
