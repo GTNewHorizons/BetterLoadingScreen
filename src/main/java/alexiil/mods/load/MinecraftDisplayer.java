@@ -896,7 +896,24 @@ public class MinecraftDisplayer implements IDisplayer {
                     progressPosAnimated,
                     EType.DYNAMIC_PERCENTAGE,
                     "Main progress fill");
+            if (tipsEnabled) {
+                tipsRender = new ImageRender(
+                        fontTexture,
+                        EPosition.valueOf(baseTipsTextPos),
+                        EType.TIPS_TEXT,
+                        null,
+                        new Area(tipsTextPos[0], tipsTextPos[1], 0, 0),
+                        tipsColor,
+                        tip,
+                        "Tips");
+            }
+            clearRender = new ImageRender(null, null, EType.CLEAR_COLOUR, null, null, "ffffff", null, "Clear colour");
+        }
+
+        if (hasSubProgress && secondaryTextRender == null) {
             secondaryTextRender = createStatusRender(secondaryProgressTextPos, "Secondary progress text");
+        }
+        if (subProgressDeterminate && secondaryAnimatedBarRender == null) {
             secondaryPercentageRender = createPercentageRender(
                     secondaryProgressPercentagePos,
                     "Secondary progress percentage");
@@ -910,18 +927,6 @@ public class MinecraftDisplayer implements IDisplayer {
                     secondaryProgressPosAnimated,
                     EType.DYNAMIC_PERCENTAGE,
                     "Secondary progress fill");
-            if (tipsEnabled) {
-                tipsRender = new ImageRender(
-                        fontTexture,
-                        EPosition.valueOf(baseTipsTextPos),
-                        EType.TIPS_TEXT,
-                        null,
-                        new Area(tipsTextPos[0], tipsTextPos[1], 0, 0),
-                        tipsColor,
-                        tip,
-                        "Tips");
-            }
-            clearRender = new ImageRender(null, null, EType.CLEAR_COLOUR, null, null, "ffffff", null, "Clear colour");
         }
 
         String currentBackground = background;
