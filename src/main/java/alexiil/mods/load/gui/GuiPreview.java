@@ -1,5 +1,8 @@
 package alexiil.mods.load.gui;
 
+import javax.swing.SwingUtilities;
+
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 
 import alexiil.mods.load.MinecraftDisplayer;
@@ -27,7 +30,7 @@ public class GuiPreview extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        displayer.displayProgress(debugText, debugPercent, null, Float.NaN);
+        if (displayer != null) displayer.displayProgressInWorkerThread(debugText, debugPercent);
     }
 
     @Override
@@ -38,9 +41,25 @@ public class GuiPreview extends GuiScreen {
     }
 
     public void close() {
-        mc.displayGuiScreen(parent);
-        preview.dispose();
-        preview = null;
+        Minecraft client = Minecraft.getMinecraft();
+        client.func_152344_a(() -> {
+            onGuiClosed();
+            if (client.currentScreen == this) client.displayGuiScreen(parent);
+        });
+    }
+
+    @Override
+    public void onGuiClosed() {
+        if (displayer != null) {
+            MinecraftDisplayer oldDisplayer = displayer;
+            displayer = null;
+            oldDisplayer.close();
+        }
+        if (preview != null) {
+            FramePreview oldPreview = preview;
+            preview = null;
+            SwingUtilities.invokeLater(oldPreview::dispose);
+        }
     }
 
     public ImageRender[] getImageData() {
@@ -48,7 +67,11 @@ public class GuiPreview extends GuiScreen {
     }
 
     public void setImageData(ImageRender[] data) {
-        displayer = new MinecraftDisplayer(true);
-        displayer.openPreview(data);
+        Minecraft.getMinecraft().func_152344_a(() -> {
+            if (displayer == null) return;
+            displayer.close();
+            displayer = new MinecraftDisplayer(true);
+            displayer.openPreview(data);
+        });
     }
 }
