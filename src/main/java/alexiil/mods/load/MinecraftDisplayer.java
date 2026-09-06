@@ -653,6 +653,8 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     private static final long MIN_MAIN_THREAD_FRAME_INTERVAL_NS = 50_000_000L;
+    private static final long RENDER_ERROR_LOG_INTERVAL_NS = TimeUnit.SECONDS.toNanos(5);
+    private long lastRenderErrorLog = System.nanoTime() - RENDER_ERROR_LOG_INTERVAL_NS;
     private long lastRenderTime;
     private boolean renderInProgress;
 
@@ -800,7 +802,11 @@ public class MinecraftDisplayer implements IDisplayer {
             resetGlState();
             displayProgressInWorkerThread(text, percent, subText, subPercent);
         } catch (Exception e) {
-            BetterLoadingScreen.log.warn("BLS splash error: ", e);
+            long now = System.nanoTime();
+            if (now - lastRenderErrorLog >= RENDER_ERROR_LOG_INTERVAL_NS) {
+                lastRenderErrorLog = now;
+                BetterLoadingScreen.log.warn("BLS splash error (logged at most once every 5 seconds): ", e);
+            }
         }
     }
 
