@@ -13,7 +13,7 @@ import alexiil.mods.load.SplashTextureManager;
  */
 public class LateInitDynamicTexture extends AbstractTexture {
 
-    private final int[] dynamicTextureData;
+    private int[] dynamicTextureData;
     private final int width;
     private final int height;
 
@@ -25,9 +25,10 @@ public class LateInitDynamicTexture extends AbstractTexture {
     }
 
     public void loadTexture(IResourceManager rs) {
-        if (this.glTextureId != -1) return;
+        if (this.dynamicTextureData == null) return;
 
         SplashTextureManager
                 .upload(this.getGlTextureId(), this.dynamicTextureData, this.width, this.height, false, false);
+        this.dynamicTextureData = null;
     }
 }
