@@ -35,7 +35,6 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.config.Configuration;
@@ -67,7 +66,7 @@ public class MinecraftDisplayer implements IDisplayer {
     private boolean threadedRendering = true;
     private ImageRender[] images;
 
-    private TextureManager textureManager = null;
+    private SplashTextureManager textureManager = null;
     private Map<String, FontRenderer> fontRenderers = new HashMap<String, FontRenderer>();
     private ScaledResolution resolution = null;
     private Minecraft mc = null;
@@ -1365,11 +1364,7 @@ public class MinecraftDisplayer implements IDisplayer {
 
     private void preDisplayScreen() {
         if (textureManager == null) {
-            if (preview) {
-                textureManager = mc.renderEngine;
-            } else {
-                textureManager = new SplashTextureManager(mc.getResourceManager());
-            }
+            textureManager = new SplashTextureManager(mc.getResourceManager());
         }
 
         resolution = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
@@ -1439,8 +1434,9 @@ public class MinecraftDisplayer implements IDisplayer {
 
         getOnlyList().remove(myPack);
 
-        if (textureManager instanceof SplashTextureManager) {
-            ((SplashTextureManager) textureManager).close();
+        if (textureManager != null) {
+            textureManager.close();
+            textureManager = null;
             fontRenderers.clear();
         }
 
