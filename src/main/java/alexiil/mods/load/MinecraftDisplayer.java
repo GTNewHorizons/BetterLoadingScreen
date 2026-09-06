@@ -796,8 +796,8 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     private void renderProgress(String text, float percent, String subText, float subPercent) {
-        resetGlState();
         try {
+            resetGlState();
             displayProgressInWorkerThread(text, percent, subText, subPercent);
         } catch (Exception e) {
             BetterLoadingScreen.log.warn("BLS splash error: ", e);
@@ -824,8 +824,8 @@ public class MinecraftDisplayer implements IDisplayer {
         GL11.glLoadIdentity();
     }
 
-    public void displayProgressInWorkerThread(String text, float percent) {
-        displayProgressInWorkerThread(text, percent, null, Float.NaN);
+    public void renderPreview(String text, float percent) {
+        renderProgress(text, percent, null, Float.NaN);
     }
 
     public void displayProgressInWorkerThread(String text, float percent, String subText, float subPercent) {

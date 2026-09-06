@@ -30,7 +30,7 @@ public class GuiPreview extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        if (displayer != null) displayer.displayProgressInWorkerThread(debugText, debugPercent);
+        if (displayer != null) displayer.renderPreview(debugText, debugPercent);
     }
 
     @Override
