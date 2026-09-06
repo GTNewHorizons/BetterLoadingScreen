@@ -1398,7 +1398,7 @@ public class MinecraftDisplayer implements IDisplayer {
             if (preview) {
                 textureManager = mc.renderEngine;
             } else {
-                textureManager = mc.renderEngine = new TextureManager(mc.getResourceManager());
+                textureManager = mc.renderEngine = new SplashTextureManager(mc.getResourceManager());
 
                 mc.fontRenderer = new FontRenderer(
                         mc.gameSettings,
