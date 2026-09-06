@@ -733,7 +733,7 @@ public class MinecraftDisplayer implements IDisplayer {
                             } finally {
                                 fmlMutex.release();
                             }
-                            Display.sync(60);
+                            Display.sync(blending ? 60 : 20);
                         }
                         resetGlState();
                     } catch (Exception e) {
