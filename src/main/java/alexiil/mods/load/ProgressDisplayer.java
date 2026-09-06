@@ -178,6 +178,7 @@ public class ProgressDisplayer {
         cfg.save();
     }
 
+    /** Returns true if an enabled splash was successfully disabled. */
     public static boolean setForgeSplashEnabled(boolean enabled) throws IOException {
         boolean hasTurnedOff = false;
         File configFile = new File(Minecraft.getMinecraft().mcDataDir, "config/splash.properties");
@@ -191,12 +192,13 @@ public class ProgressDisplayer {
         } finally {
             IOUtils.closeQuietly(r);
         }
+        boolean wasEnabled = Boolean.parseBoolean(config.getProperty("enabled", "true"));
         config.setProperty("enabled", Boolean.toString(enabled));
         FileWriter w = null;
         try {
             w = new FileWriter(configFile);
             config.store(w, "Splash screen properties");
-            hasTurnedOff = true;
+            hasTurnedOff = wasEnabled && !enabled;
             BetterLoadingScreen.log
                     .info("Turned Forge splash screen " + (enabled ? "on" : "off") + " in splash.properties");
         } catch (IOException e) {
