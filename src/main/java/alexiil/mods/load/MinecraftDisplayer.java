@@ -1306,7 +1306,7 @@ public class MinecraftDisplayer implements IDisplayer {
                         background = newBlendImage;
                     }
 
-                    GL11.glColor4f(render.getRed(), render.getGreen(), render.getBlue(), blendAlpha);
+                    GL11.glColor4f(render.getRed(), render.getGreen(), render.getBlue(), 1F);
                     bindTexture(render.resourceLocation);
                     drawRect(
                             startX,
