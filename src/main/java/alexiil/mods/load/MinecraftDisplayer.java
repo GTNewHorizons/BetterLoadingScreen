@@ -583,7 +583,7 @@ public class MinecraftDisplayer implements IDisplayer {
         textShadow = cfg.getBoolean("textShadow", "layout", textShadow, comment20);
 
         String comment21 = "Color of text in hexadecimal format";
-        textColor = cfg.getString("textColor", "layout", textColor, comment21);
+        textColor = validateTextColor(cfg.getString("textColor", "layout", textColor, comment21));
 
         String comment22 = "Whether display a random background from the random backgrounds list";
         randomBackgrounds = cfg.getBoolean("randomBackgrounds", "layout", randomBackgrounds, comment22);
@@ -631,7 +631,7 @@ public class MinecraftDisplayer implements IDisplayer {
         tipsTextShadow = cfg.getBoolean("tipsTextShadow", "tips", tipsTextShadow, comment36);
 
         String comment37 = "Color of tips text in hexadecimal format";
-        tipsColor = cfg.getString("tipsTextColor", "tips", tipsColor, comment37);
+        tipsColor = validateTextColor(cfg.getString("tipsTextColor", "tips", tipsColor, comment37));
 
         String comment38 = "Time in seconds between tip changes";
         tipsChangeFrequency = cfg.getInt("tipsChangeFrequency", "tips", tipsChangeFrequency, 1, 9000, comment38);
@@ -687,6 +687,13 @@ public class MinecraftDisplayer implements IDisplayer {
                 });
             }
         }
+    }
+
+    private static String validateTextColor(String color) {
+        color = color.trim();
+        if (color.matches("[0-9a-fA-F]{6}")) return color;
+        BetterLoadingScreen.log.warn("Invalid text color '{}', using white", color);
+        return "ffffff";
     }
 
     private static final long MIN_MAIN_THREAD_FRAME_INTERVAL_NS = 50_000_000L;
