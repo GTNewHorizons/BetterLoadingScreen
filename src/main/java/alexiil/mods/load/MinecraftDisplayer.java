@@ -82,7 +82,7 @@ public class MinecraftDisplayer implements IDisplayer {
     private String progress = "betterloadingscreen:textures/mainProgressBar.png";
     private String progressAnimated = "betterloadingscreen:textures/mainProgressBar.png";
     private String title = "betterloadingscreen:textures/transparent.png";
-    private String background = "betterloadingscreen:textures/backgrounds/01.png";
+    private volatile String background = "betterloadingscreen:textures/backgrounds/01.png";
 
     // Coordinate format: {texture x, y, w, h, on-screen x, y, w, h}
     private int[] titlePos = new int[] { 0, 0, 256, 256, 0, 50, 187, 145 };
@@ -115,8 +115,9 @@ public class MinecraftDisplayer implements IDisplayer {
     private String textColor = "ffffff";
 
     private boolean randomBackgrounds = true;
-    public static String[] randomBackgroundArray = new String[] { "betterloadingscreen:textures/backgrounds/01.png",
-            "betterloadingscreen:textures/backgrounds/02.png" };
+    // Imgur callbacks publish complete arrays; published elements must not be modified.
+    public static volatile String[] randomBackgroundArray = new String[] {
+            "betterloadingscreen:textures/backgrounds/01.png", "betterloadingscreen:textures/backgrounds/02.png" };
 
     private boolean backgroundChanging = true;
     private int changeFrequency = 40;
