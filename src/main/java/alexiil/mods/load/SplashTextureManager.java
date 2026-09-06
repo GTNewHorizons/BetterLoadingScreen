@@ -46,10 +46,16 @@ public class SplashTextureManager extends TextureManager {
     }
 
     public static void upload(int textureId, int[] pixels, int width, int height, boolean blur, boolean clamp) {
+        upload(textureId, null, pixels, width, height, blur, clamp);
+    }
+
+    private static void upload(int textureId, BufferedImage image, int[] pixels, int width, int height, boolean blur,
+            boolean clamp) {
         // Minecraft's upload buffer is shared with the loading thread.
         int rowsPerUpload = Math.min(height, Math.max(1, 1024 * 1024 / width));
         IntBuffer buffer = BufferUtils.createIntBuffer(width * rowsPerUpload);
-        if (Minecraft.getMinecraft().gameSettings.anaglyph) pixels = TextureUtil.updateAnaglyph(pixels);
+        boolean anaglyph = Minecraft.getMinecraft().gameSettings.anaglyph;
+        int[] chunk = image != null || anaglyph ? new int[width * rowsPerUpload] : null;
         TextureUtil.allocateTexture(textureId, width, height);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, blur ? GL11.GL_LINEAR : GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, blur ? GL11.GL_LINEAR : GL11.GL_NEAREST);
@@ -58,7 +64,16 @@ public class SplashTextureManager extends TextureManager {
         for (int y = 0; y < height; y += rowsPerUpload) {
             int rows = Math.min(rowsPerUpload, height - y);
             buffer.clear();
-            buffer.put(pixels, y * width, rows * width);
+            if (chunk != null) {
+                if (image != null) {
+                    image.getRGB(0, y, width, rows, chunk, 0, width);
+                } else {
+                    System.arraycopy(pixels, y * width, chunk, 0, rows * width);
+                }
+                buffer.put(anaglyph ? TextureUtil.updateAnaglyph(chunk) : chunk, 0, rows * width);
+            } else {
+                buffer.put(pixels, y * width, rows * width);
+            }
             buffer.flip();
             GL11.glTexSubImage2D(
                     GL11.GL_TEXTURE_2D,
@@ -99,7 +114,8 @@ public class SplashTextureManager extends TextureManager {
             int height = image.getHeight();
             upload(
                     getGlTextureId(),
-                    image.getRGB(0, 0, width, height, null, 0, width),
+                    image,
+                    null,
                     width,
                     height,
                     metadata != null && metadata.getTextureBlur(),
