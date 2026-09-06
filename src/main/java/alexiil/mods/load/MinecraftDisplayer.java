@@ -147,7 +147,7 @@ public class MinecraftDisplayer implements IDisplayer {
     private ScheduledExecutorService tipExec = null;
 
     private Thread splashRenderThread = null;
-    private boolean splashRenderKillSwitch = false;
+    private volatile boolean splashRenderKillSwitch = false;
 
     /**
      * During the load phase, the main thread still needs to access OpenGL to load textures, etc. To achieve this, the
@@ -751,30 +751,36 @@ public class MinecraftDisplayer implements IDisplayer {
 
                 @Override
                 public void run() {
+                    boolean contextCurrent = false;
                     try {
                         Field f = SplashProgress.class.getDeclaredField("mutex");
                         f.setAccessible(true);
                         fmlMutex = (Semaphore) f.get(null);
                         Display.getDrawable().makeCurrent();
+                        contextCurrent = true;
+
+                        while (!MinecraftDisplayer.this.splashRenderKillSwitch) {
+                            renderProgress(currentText, currentPercent, currentSubText, currentSubPercent);
+
+                            fmlMutex.acquireUninterruptibly();
+                            try {
+                                Display.update();
+                            } finally {
+                                fmlMutex.release();
+                            }
+                            Display.sync(60);
+                        }
+                        resetGlState();
                     } catch (Exception e) {
-                        e.printStackTrace();
                         throw new RuntimeException(e);
-                    }
-
-                    while (!MinecraftDisplayer.this.splashRenderKillSwitch) {
-                        renderProgress(currentText, currentPercent, currentSubText, currentSubPercent);
-
-                        fmlMutex.acquireUninterruptibly();
-                        Display.update();
-                        fmlMutex.release();
-                        Display.sync(60);
-                    }
-                    resetGlState();
-                    try {
-                        Display.getDrawable().releaseContext();
-                    } catch (LWJGLException e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
+                    } finally {
+                        if (contextCurrent) {
+                            try {
+                                Display.getDrawable().releaseContext();
+                            } catch (LWJGLException e) {
+                                BetterLoadingScreen.log.error("Failed to release splash context", e);
+                            }
+                        }
                     }
                 }
 
@@ -1455,16 +1461,26 @@ public class MinecraftDisplayer implements IDisplayer {
 
     @Override
     public void close() {
-        if (splashRenderThread != null && splashRenderThread.isAlive()) {
+        if (loadingDrawable != null) {
             BetterLoadingScreen.log.info("BLS Splash loading thread closing");
             splashRenderKillSwitch = true;
+            boolean interrupted = false;
             try {
                 loadingDrawable.releaseContext();
-                splashRenderThread.join();
+                while (splashRenderThread != null && splashRenderThread.isAlive()) {
+                    try {
+                        splashRenderThread.join();
+                    } catch (InterruptedException e) {
+                        interrupted = true;
+                    }
+                }
                 Display.getDrawable().makeCurrent();
-            } catch (LWJGLException | InterruptedException e) {
-                e.printStackTrace();
+                loadingDrawable.destroy();
+                loadingDrawable = null;
+            } catch (LWJGLException e) {
                 throw new RuntimeException(e);
+            } finally {
+                if (interrupted) Thread.currentThread().interrupt();
             }
         }
 
