@@ -92,8 +92,10 @@ public class ImgurCacheManager {
             try (ImgurClient client = OFFLINE_MODE ? null : new ImgurClient(appClientId, requestTimeout)) {
                 Consumer<String> imageHandler = imageID -> {
                     // This will leave behind cached images that are no longer in the gallery
-                    synchronized (cachedImageIDs) {
-                        cachedImageIDs.remove(imageID);
+                    if (!OFFLINE_MODE) {
+                        synchronized (cachedImageIDs) {
+                            cachedImageIDs.remove(imageID);
+                        }
                     }
 
                     if (cancelSetup) return;
