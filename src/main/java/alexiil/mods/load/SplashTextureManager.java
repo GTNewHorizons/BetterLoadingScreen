@@ -11,6 +11,7 @@ import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.ITextureObject;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.client.resources.IResource;
@@ -32,12 +33,34 @@ public class SplashTextureManager extends TextureManager {
 
     @Override
     public void bindTexture(ResourceLocation location) {
-        if (getTexture(location) == null) {
-            ResourceTexture texture = new ResourceTexture(location);
-            ownedTextures.add(texture);
-            loadTexture(location, texture);
+        ITextureObject cached = getTexture(location);
+        if (cached == null) {
+            cached = new ResourceTexture(location);
+            ownedTextures.add((ResourceTexture) cached);
+        }
+        if (cached instanceof ResourceTexture) {
+            ResourceTexture texture = (ResourceTexture) cached;
+            texture.usedThisFrame = true;
+            if (!texture.isLoaded()) loadTexture(location, texture);
         }
         super.bindTexture(location);
+    }
+
+    public void bindBackgroundTexture(ResourceLocation location) {
+        bindTexture(location);
+        ITextureObject texture = getTexture(location);
+        if (texture instanceof ResourceTexture) ((ResourceTexture) texture).background = true;
+    }
+
+    public void beginFrame() {
+        ownedTextures.forEach(texture -> texture.usedThisFrame = false);
+    }
+
+    public void endFrame() {
+        // Only evict resource backgrounds; shared UI textures and Imgur textures keep their owners.
+        for (ResourceTexture texture : ownedTextures) {
+            if (texture.background && !texture.usedThisFrame) texture.deleteGlTexture();
+        }
     }
 
     public void close() {
@@ -91,9 +114,15 @@ public class SplashTextureManager extends TextureManager {
     private static class ResourceTexture extends AbstractTexture {
 
         private final ResourceLocation location;
+        private boolean background;
+        private boolean usedThisFrame;
 
         private ResourceTexture(ResourceLocation location) {
             this.location = location;
+        }
+
+        private boolean isLoaded() {
+            return glTextureId != -1;
         }
 
         @Override

@@ -799,8 +799,10 @@ public class MinecraftDisplayer implements IDisplayer {
 
     private void renderProgress(String text, float percent, String subText, float subPercent) {
         try {
+            if (textureManager != null) textureManager.beginFrame();
             resetGlState();
             displayProgressInWorkerThread(text, percent, subText, subPercent);
+            if (textureManager != null) textureManager.endFrame();
         } catch (Exception e) {
             long now = System.nanoTime();
             if (now - lastRenderErrorLog >= RENDER_ERROR_LOG_INTERVAL_NS) {
@@ -1283,7 +1285,7 @@ public class MinecraftDisplayer implements IDisplayer {
                     }
 
                     GL11.glColor4f(render.getRed(), render.getGreen(), render.getBlue(), 1F);
-                    bindTexture(render.resourceLocation);
+                    bindTexture(render.resourceLocation, true);
                     drawRect(
                             startX,
                             startY,
@@ -1301,7 +1303,7 @@ public class MinecraftDisplayer implements IDisplayer {
                             new Area(0, 0, 256, 256),
                             new Area(0, 0, 0, 0));
                     GL11.glColor4f(render2.getRed(), render2.getGreen(), render2.getBlue(), 1.f - blendAlpha);
-                    bindTexture(render2.resourceLocation);
+                    bindTexture(render2.resourceLocation, true);
                     drawRect(
                             startX,
                             startY,
@@ -1313,7 +1315,7 @@ public class MinecraftDisplayer implements IDisplayer {
                             render2.texture.height);
                 } else {
                     GL11.glColor4f(render.getRed(), render.getGreen(), render.getBlue(), 1F);
-                    bindTexture(render.resourceLocation);
+                    bindTexture(render.resourceLocation, render.type == EType.STATIC_BLENDED);
                     drawRect(
                             startX,
                             startY,
@@ -1331,7 +1333,7 @@ public class MinecraftDisplayer implements IDisplayer {
         }
     }
 
-    private void bindTexture(String resourceLocation) {
+    private void bindTexture(String resourceLocation, boolean backgroundTexture) {
         ResourceLocation res = new ResourceLocation(resourceLocation);
 
         // We cannot go through the default texture loader, because it can't load from the file system
@@ -1345,7 +1347,8 @@ public class MinecraftDisplayer implements IDisplayer {
             }
         }
 
-        textureManager.bindTexture(res);
+        if (backgroundTexture) textureManager.bindBackgroundTexture(res);
+        else textureManager.bindTexture(res);
     }
 
     public void drawString(FontRenderer font, String text, int x, int y, int colour) {
