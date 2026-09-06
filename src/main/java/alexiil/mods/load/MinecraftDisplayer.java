@@ -69,6 +69,10 @@ public class MinecraftDisplayer implements IDisplayer {
             primaryAnimatedBarRender, secondaryTextRender, secondaryPercentageRender, secondaryBarRender,
             secondaryAnimatedBarRender, tipsRender, clearRender;
     private ImageRender memoryBarRender, memoryTextRender, memoryFillRender;
+    private static final long MEMORY_REFRESH_INTERVAL_NS = TimeUnit.MILLISECONDS.toNanos(50);
+    private long lastMemoryRefresh;
+    private String memoryText;
+    private double memoryPercent;
     private String renderedBackground;
     private boolean layoutHasSubProgress, layoutSubProgressDeterminate;
 
@@ -1099,11 +1103,15 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     private void drawMemoryUsage() {
-        final Runtime rt = Runtime.getRuntime();
-        final long maxMem = Long.max(1, rt.maxMemory() / (1024 * 1024));
-        final long usedMem = Long.max(1, (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024));
-        final String memText = String
-                .format(Translation.translate("betterloadingscreen.memory_usage"), usedMem, maxMem);
+        long now = System.nanoTime();
+        if (memoryText == null || now - lastMemoryRefresh >= MEMORY_REFRESH_INTERVAL_NS) {
+            final Runtime rt = Runtime.getRuntime();
+            final long maxMem = Long.max(1, rt.maxMemory() / (1024 * 1024));
+            final long usedMem = Long.max(1, (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024));
+            memoryText = String.format(Translation.translate("betterloadingscreen.memory_usage"), usedMem, maxMem);
+            memoryPercent = (double) usedMem / (double) maxMem;
+            lastMemoryRefresh = now;
+        }
 
         if (memoryFillRender == null) {
             memoryBarRender = new ImageRender(
@@ -1137,8 +1145,8 @@ public class MinecraftDisplayer implements IDisplayer {
                     null);
         }
         drawImageRender(memoryBarRender, null, 0.0);
-        drawImageRender(memoryTextRender, memText, 0.0);
-        drawImageRender(memoryFillRender, null, (double) usedMem / (double) maxMem);
+        drawImageRender(memoryTextRender, memoryText, 0.0);
+        drawImageRender(memoryFillRender, null, memoryPercent);
     }
 
     private FontRenderer fontRenderer(String fontTexture) {
