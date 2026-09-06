@@ -47,24 +47,30 @@ public class SplashTextureManager extends TextureManager {
 
     public static void upload(int textureId, int[] pixels, int width, int height, boolean blur, boolean clamp) {
         // Minecraft's upload buffer is shared with the loading thread.
-        IntBuffer buffer = BufferUtils.createIntBuffer(pixels.length);
-        buffer.put(Minecraft.getMinecraft().gameSettings.anaglyph ? TextureUtil.updateAnaglyph(pixels) : pixels);
-        buffer.flip();
+        int rowsPerUpload = Math.min(height, Math.max(1, 1024 * 1024 / width));
+        IntBuffer buffer = BufferUtils.createIntBuffer(width * rowsPerUpload);
+        if (Minecraft.getMinecraft().gameSettings.anaglyph) pixels = TextureUtil.updateAnaglyph(pixels);
         TextureUtil.allocateTexture(textureId, width, height);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, blur ? GL11.GL_LINEAR : GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, blur ? GL11.GL_LINEAR : GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, clamp ? GL11.GL_CLAMP : GL11.GL_REPEAT);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, clamp ? GL11.GL_CLAMP : GL11.GL_REPEAT);
-        GL11.glTexSubImage2D(
-                GL11.GL_TEXTURE_2D,
-                0,
-                0,
-                0,
-                width,
-                height,
-                GL12.GL_BGRA,
-                GL12.GL_UNSIGNED_INT_8_8_8_8_REV,
-                buffer);
+        for (int y = 0; y < height; y += rowsPerUpload) {
+            int rows = Math.min(rowsPerUpload, height - y);
+            buffer.clear();
+            buffer.put(pixels, y * width, rows * width);
+            buffer.flip();
+            GL11.glTexSubImage2D(
+                    GL11.GL_TEXTURE_2D,
+                    0,
+                    0,
+                    y,
+                    width,
+                    rows,
+                    GL12.GL_BGRA,
+                    GL12.GL_UNSIGNED_INT_8_8_8_8_REV,
+                    buffer);
+        }
     }
 
     private static class ResourceTexture extends AbstractTexture {
