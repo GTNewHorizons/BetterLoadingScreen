@@ -338,7 +338,7 @@ public class MinecraftDisplayer implements IDisplayer {
         return lines.toArray(new String[0]);
     }
 
-    public static void placeTipsFile() throws IOException {
+    public static File placeTipsFile() throws IOException {
         String locale = "en_US";
         if (!useCustomTips) {
             BetterLoadingScreen.log.info("Not using custom tooltips");
@@ -376,11 +376,13 @@ public class MinecraftDisplayer implements IDisplayer {
         }
         BetterLoadingScreen.log.debug("Current locale: " + locale);
         File dest = new File("./config/Betterloadingscreen/tips/" + locale + ".txt");
+        if (dest.exists()) return dest;
         BetterLoadingScreen.log.debug("dest set");
         OutputStream outStream = new FileOutputStream(dest);
         // BetterLoadingScreen.log.trace("outputstream set");
         outStream.write(buffer);
         // BetterLoadingScreen.log.trace("buffer write");
+        return dest;
     }
 
     public void handleTips() {
@@ -427,20 +429,8 @@ public class MinecraftDisplayer implements IDisplayer {
             }
         } else {
             try {
-                // BetterLoadingScreen.log.trace("Using locale " + locale + "(4)");
-                tipsCheck = new File("./config/Betterloadingscreen/tips/" + locale + ".txt");
-                // BetterLoadingScreen.log.trace("Checking if "+locale+".txt exists");
-                if (tipsCheck.exists()) {
-                    // BetterLoadingScreen.log.trace("Using locale " + locale + "(5)");
-                    randomTips = readTipsFile("./config/Betterloadingscreen/" + locale + ".txt");
-                } else {
-                    tipsCheck = new File("./config/Betterloadingscreen/tips/en_US.txt");
-                    if (!tipsCheck.exists()) {
-                        // BetterLoadingScreen.log.trace("Placing tips");
-                        placeTipsFile();
-                    }
-                    randomTips = readTipsFile("./config/Betterloadingscreen/tips/en_US.txt");
-                }
+                tipsCheck = placeTipsFile();
+                randomTips = readTipsFile(tipsCheck.getPath());
                 Random rand = new Random();
                 tip = randomTips[rand.nextInt(randomTips.length)];
                 // BetterLoadingScreen.log.trace("choosing first tip: "+tip);
