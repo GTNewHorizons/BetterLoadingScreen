@@ -1404,7 +1404,7 @@ public class MinecraftDisplayer implements IDisplayer {
             if (preview) {
                 textureManager = mc.renderEngine;
             } else {
-                textureManager = mc.renderEngine = new SplashTextureManager(mc.getResourceManager());
+                textureManager = new SplashTextureManager(mc.getResourceManager());
 
                 mc.fontRenderer = new FontRenderer(
                         mc.gameSettings,
@@ -1492,6 +1492,11 @@ public class MinecraftDisplayer implements IDisplayer {
         }
 
         getOnlyList().remove(myPack);
+
+        if (textureManager instanceof SplashTextureManager) {
+            ((SplashTextureManager) textureManager).close();
+            fontRenderers.clear();
+        }
 
         if (imgurCacheManager != null) {
             imgurCacheManager.cleanUp();

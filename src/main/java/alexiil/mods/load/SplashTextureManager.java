@@ -4,6 +4,8 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -22,14 +24,25 @@ import org.lwjgl.opengl.GL12;
 
 public class SplashTextureManager extends TextureManager {
 
+    private final List<ResourceTexture> ownedTextures = new ArrayList<>();
+
     public SplashTextureManager(IResourceManager resources) {
         super(resources);
     }
 
     @Override
     public void bindTexture(ResourceLocation location) {
-        if (getTexture(location) == null) loadTexture(location, new ResourceTexture(location));
+        if (getTexture(location) == null) {
+            ResourceTexture texture = new ResourceTexture(location);
+            ownedTextures.add(texture);
+            loadTexture(location, texture);
+        }
         super.bindTexture(location);
+    }
+
+    public void close() {
+        ownedTextures.forEach(AbstractTexture::deleteGlTexture);
+        ownedTextures.clear();
     }
 
     public static void upload(int textureId, int[] pixels, int width, int height, boolean blur, boolean clamp) {
