@@ -316,7 +316,7 @@ public class MinecraftDisplayer implements IDisplayer {
             StringBuffer inputBuffer = new StringBuffer();
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.charAt(0) != '#') {
+                if (!line.trim().isEmpty() && line.charAt(0) != '#') {
                     lines.add(line);
                 }
                 inputBuffer.append(line);
