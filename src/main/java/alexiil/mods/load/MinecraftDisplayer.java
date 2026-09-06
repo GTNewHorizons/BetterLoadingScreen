@@ -267,17 +267,11 @@ public class MinecraftDisplayer implements IDisplayer {
     }
 
     public String[] parseBackgroundCFGListToArray(String backgrounds) {
-        String[] res = backgrounds.split(",");
-        for (int i = 0; i < res.length; i++) {
-            if (String.valueOf(res[i].charAt(0)).equals(" ") || String.valueOf(res[i].charAt(0)).equals("{")) {
-                res[i] = res[i].substring(1);
-            }
-            if (String.valueOf(res[i].charAt(res[i].length() - 1)).equals(" ")
-                    || String.valueOf(res[i].charAt(res[i].length() - 1)).equals("}")) {
-                res[i] = res[i].substring(0, res[i].length() - 1);
-            }
-        }
-        return res;
+        backgrounds = backgrounds.trim();
+        if (backgrounds.startsWith("{")) backgrounds = backgrounds.substring(1);
+        if (backgrounds.endsWith("}")) backgrounds = backgrounds.substring(0, backgrounds.length() - 1);
+        return Arrays.stream(backgrounds.split(",")).map(String::trim).filter(value -> !value.isEmpty())
+                .toArray(String[]::new);
     }
 
     public String randomBackground(String currentBG) {
@@ -643,8 +637,10 @@ public class MinecraftDisplayer implements IDisplayer {
         handleTips();
 
         if (randomBackgrounds && !salt) {
-            Random rand = new Random();
-            background = randomBackgroundArray[rand.nextInt(randomBackgroundArray.length)];
+            if (randomBackgroundArray.length > 0) {
+                Random rand = new Random();
+                background = randomBackgroundArray[rand.nextInt(randomBackgroundArray.length)];
+            }
             nextBackgroundChangeMillis = System.currentTimeMillis() + changeFrequency * 1000L;
 
             if (useImgur) {
