@@ -65,6 +65,12 @@ public class MinecraftDisplayer implements IDisplayer {
     private final boolean preview;
     private boolean threadedRendering = true;
     private ImageRender[] images;
+    private ImageRender backgroundRender, titleRender, primaryTextRender, primaryPercentageRender, primaryBarRender,
+            primaryAnimatedBarRender, secondaryTextRender, secondaryPercentageRender, secondaryBarRender,
+            secondaryAnimatedBarRender, tipsRender, clearRender;
+    private ImageRender memoryBarRender, memoryTextRender, memoryFillRender;
+    private String renderedBackground;
+    private boolean layoutHasSubProgress, layoutSubProgressDeterminate;
 
     private SplashTextureManager textureManager = null;
     private Map<String, FontRenderer> fontRenderers = new HashMap<String, FontRenderer>();
@@ -845,88 +851,9 @@ public class MinecraftDisplayer implements IDisplayer {
 
         updateBackground();
 
-        List<ImageRender> renderList = new ArrayList<>();
-
-        ImageRender backgroundRender = createBackgroundRender();
-        ImageRender titleRender = createTitleRender();
-
-        renderList.add(backgroundRender);
-        renderList.add(titleRender);
-
-        ImageRender primaryTextRender = createStatusRender(progressTextPos, "Main progress text");
-        ImageRender primaryPercentageRender = createPercentageRender(progressPercentagePos, "Main progress percentage");
-        ImageRender primaryBarRender = createBarRender(progress, progressPos, EType.STATIC, "Main progress bar");
-        ImageRender primaryAnimatedBarRender = createBarRender(
-                progress,
-                progressPosAnimated,
-                EType.DYNAMIC_PERCENTAGE,
-                "Main progress fill");
-
-        renderList.add(primaryTextRender);
-        renderList.add(primaryPercentageRender);
-        renderList.add(primaryBarRender);
-        renderList.add(primaryAnimatedBarRender);
-
         boolean hasSubProgress = subText != null && !subText.isEmpty();
         boolean subProgressDeterminate = hasSubProgress && !Float.isNaN(subPercent);
-        ImageRender secondaryTextRender = null;
-        ImageRender secondaryPercentageRender = null;
-        ImageRender secondaryBarRender = null;
-        ImageRender secondaryAnimatedBarRender = null;
-
-        if (hasSubProgress) {
-            secondaryTextRender = createStatusRender(secondaryProgressTextPos, "Secondary progress text");
-            renderList.add(secondaryTextRender);
-
-            if (subProgressDeterminate) {
-                secondaryPercentageRender = createPercentageRender(
-                        secondaryProgressPercentagePos,
-                        "Secondary progress percentage");
-                secondaryBarRender = createBarRender(
-                        progress,
-                        secondaryProgressPos,
-                        EType.STATIC,
-                        "Secondary progress bar");
-                secondaryAnimatedBarRender = createBarRender(
-                        progress,
-                        secondaryProgressPosAnimated,
-                        EType.DYNAMIC_PERCENTAGE,
-                        "Secondary progress fill");
-
-                renderList.add(secondaryPercentageRender);
-                renderList.add(secondaryBarRender);
-                renderList.add(secondaryAnimatedBarRender);
-            }
-        }
-
-        ImageRender tipsRender = null;
-        if (tipsEnabled) {
-            tipsRender = new ImageRender(
-                    fontTexture,
-                    EPosition.valueOf(baseTipsTextPos),
-                    EType.TIPS_TEXT,
-                    null,
-                    new Area(tipsTextPos[0], tipsTextPos[1], 0, 0),
-                    tipsColor,
-                    tip,
-                    "Tips");
-            renderList.add(tipsRender);
-        }
-
-        ImageRender clearRender = new ImageRender(
-                null,
-                null,
-                EType.CLEAR_COLOUR,
-                null,
-                null,
-                "ffffff",
-                null,
-                "Clear colour");
-        renderList.add(clearRender);
-
-        images = renderList.toArray(new ImageRender[0]);
-
-        resolution = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        updateLayout(hasSubProgress, subProgressDeterminate);
         preDisplayScreen();
 
         drawImageRender(backgroundRender, null, 0);
@@ -952,6 +879,79 @@ public class MinecraftDisplayer implements IDisplayer {
         drawImageRender(clearRender, null, 0);
 
         drawMemoryUsage();
+    }
+
+    private void updateLayout(boolean hasSubProgress, boolean subProgressDeterminate) {
+        if (clearRender == null) {
+            titleRender = createTitleRender();
+            primaryTextRender = createStatusRender(progressTextPos, "Main progress text");
+            primaryPercentageRender = createPercentageRender(progressPercentagePos, "Main progress percentage");
+            primaryBarRender = createBarRender(progress, progressPos, EType.STATIC, "Main progress bar");
+            primaryAnimatedBarRender = createBarRender(
+                    progress,
+                    progressPosAnimated,
+                    EType.DYNAMIC_PERCENTAGE,
+                    "Main progress fill");
+            secondaryTextRender = createStatusRender(secondaryProgressTextPos, "Secondary progress text");
+            secondaryPercentageRender = createPercentageRender(
+                    secondaryProgressPercentagePos,
+                    "Secondary progress percentage");
+            secondaryBarRender = createBarRender(
+                    progress,
+                    secondaryProgressPos,
+                    EType.STATIC,
+                    "Secondary progress bar");
+            secondaryAnimatedBarRender = createBarRender(
+                    progress,
+                    secondaryProgressPosAnimated,
+                    EType.DYNAMIC_PERCENTAGE,
+                    "Secondary progress fill");
+            if (tipsEnabled) {
+                tipsRender = new ImageRender(
+                        fontTexture,
+                        EPosition.valueOf(baseTipsTextPos),
+                        EType.TIPS_TEXT,
+                        null,
+                        new Area(tipsTextPos[0], tipsTextPos[1], 0, 0),
+                        tipsColor,
+                        tip,
+                        "Tips");
+            }
+            clearRender = new ImageRender(null, null, EType.CLEAR_COLOUR, null, null, "ffffff", null, "Clear colour");
+        }
+
+        String currentBackground = background;
+        boolean backgroundChanged = !currentBackground.equals(renderedBackground);
+        if (backgroundChanged) {
+            backgroundRender = createBackgroundRender(currentBackground);
+            renderedBackground = currentBackground;
+        }
+
+        if (images == null || backgroundChanged
+                || hasSubProgress != layoutHasSubProgress
+                || subProgressDeterminate != layoutSubProgressDeterminate) {
+            List<ImageRender> renderList = new ArrayList<>();
+            renderList.add(backgroundRender);
+            renderList.add(titleRender);
+            renderList.add(primaryTextRender);
+            renderList.add(primaryPercentageRender);
+            renderList.add(primaryBarRender);
+            renderList.add(primaryAnimatedBarRender);
+            if (hasSubProgress) {
+                renderList.add(secondaryTextRender);
+                if (subProgressDeterminate) {
+                    renderList.add(secondaryPercentageRender);
+                    renderList.add(secondaryBarRender);
+                    renderList.add(secondaryAnimatedBarRender);
+                }
+            }
+            if (tipsRender != null) renderList.add(tipsRender);
+            renderList.add(clearRender);
+            images = renderList.toArray(new ImageRender[0]);
+            layoutHasSubProgress = hasSubProgress;
+            layoutSubProgressDeterminate = subProgressDeterminate;
+        }
+        if (tipsRender != null) tipsRender.text = tip;
     }
 
     private void updateBackground() {
@@ -1014,7 +1014,7 @@ public class MinecraftDisplayer implements IDisplayer {
         }
     }
 
-    private ImageRender createBackgroundRender() {
+    private ImageRender createBackgroundRender(String background) {
         if (!background.equals("")) {
             return new ImageRender(
                     background,
@@ -1105,52 +1105,40 @@ public class MinecraftDisplayer implements IDisplayer {
         final String memText = String
                 .format(Translation.translate("betterloadingscreen.memory_usage"), usedMem, maxMem);
 
-        drawImageRender(
-                new ImageRender(
-                        progress,
-                        EPosition.TOP_CENTER,
-                        EType.STATIC,
-                        new Area(memoryPos[0], memoryPos[1], memoryPos[2], memoryPos[3]),
-                        new Area(memoryPos[4], memoryPos[5], memoryPos[6], memoryPos[7]),
-                        "ffffff",
-                        null,
-                        null),
-                null,
-                0.0);
+        if (memoryFillRender == null) {
+            memoryBarRender = new ImageRender(
+                    progress,
+                    EPosition.TOP_CENTER,
+                    EType.STATIC,
+                    new Area(memoryPos[0], memoryPos[1], memoryPos[2], memoryPos[3]),
+                    new Area(memoryPos[4], memoryPos[5], memoryPos[6], memoryPos[7]),
+                    "ffffff",
+                    null,
+                    null);
 
-        drawImageRender(
-                new ImageRender(
-                        fontTexture,
-                        EPosition.TOP_CENTER,
-                        EType.DYNAMIC_TEXT_STATUS,
-                        new Area(memoryPos[0], memoryPos[1], memoryPos[2], memoryPos[3]),
-                        new Area(memoryPos[4], memoryPos[5] - 10, memoryPos[6], memoryPos[7]),
-                        "ffffff",
-                        null,
-                        null),
-                memText,
-                0.0);
+            memoryTextRender = new ImageRender(
+                    fontTexture,
+                    EPosition.TOP_CENTER,
+                    EType.DYNAMIC_TEXT_STATUS,
+                    new Area(memoryPos[0], memoryPos[1], memoryPos[2], memoryPos[3]),
+                    new Area(memoryPos[4], memoryPos[5] - 10, memoryPos[6], memoryPos[7]),
+                    "ffffff",
+                    null,
+                    null);
 
-        drawImageRender(
-                new ImageRender(
-                        progress,
-                        EPosition.TOP_CENTER,
-                        EType.DYNAMIC_PERCENTAGE,
-                        new Area(
-                                memoryPosAnimated[0],
-                                memoryPosAnimated[1],
-                                memoryPosAnimated[2],
-                                memoryPosAnimated[3]),
-                        new Area(
-                                memoryPosAnimated[4],
-                                memoryPosAnimated[5],
-                                memoryPosAnimated[6],
-                                memoryPosAnimated[7]),
-                        "ffffff",
-                        null,
-                        null),
-                null,
-                (double) usedMem / (double) maxMem);
+            memoryFillRender = new ImageRender(
+                    progress,
+                    EPosition.TOP_CENTER,
+                    EType.DYNAMIC_PERCENTAGE,
+                    new Area(memoryPosAnimated[0], memoryPosAnimated[1], memoryPosAnimated[2], memoryPosAnimated[3]),
+                    new Area(memoryPosAnimated[4], memoryPosAnimated[5], memoryPosAnimated[6], memoryPosAnimated[7]),
+                    "ffffff",
+                    null,
+                    null);
+        }
+        drawImageRender(memoryBarRender, null, 0.0);
+        drawImageRender(memoryTextRender, memText, 0.0);
+        drawImageRender(memoryFillRender, null, (double) usedMem / (double) maxMem);
     }
 
     private FontRenderer fontRenderer(String fontTexture) {
@@ -1296,23 +1284,9 @@ public class MinecraftDisplayer implements IDisplayer {
                             render.texture.width,
                             render.texture.height);
 
-                    ImageRender render2 = new ImageRender(
-                            newBlendImage,
-                            EPosition.TOP_LEFT,
-                            EType.STATIC,
-                            new Area(0, 0, 256, 256),
-                            new Area(0, 0, 0, 0));
-                    GL11.glColor4f(render2.getRed(), render2.getGreen(), render2.getBlue(), 1.f - blendAlpha);
-                    bindTexture(render2.resourceLocation, true);
-                    drawRect(
-                            startX,
-                            startY,
-                            PWidth,
-                            PHeight,
-                            render2.texture.x,
-                            render2.texture.y,
-                            render2.texture.width,
-                            render2.texture.height);
+                    GL11.glColor4f(1, 1, 1, 1.f - blendAlpha);
+                    bindTexture(newBlendImage, true);
+                    drawRect(startX, startY, PWidth, PHeight, 0, 0, 256, 256);
                 } else {
                     GL11.glColor4f(render.getRed(), render.getGreen(), render.getBlue(), 1F);
                     bindTexture(render.resourceLocation, render.type == EType.STATIC_BLENDED);
