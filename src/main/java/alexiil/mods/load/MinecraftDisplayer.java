@@ -39,7 +39,6 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.resources.IResourcePack;
-import net.minecraft.client.resources.LanguageManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.config.Configuration;
 
@@ -72,7 +71,6 @@ public class MinecraftDisplayer implements IDisplayer {
 
     private TextureManager textureManager = null;
     private Map<String, FontRenderer> fontRenderers = new HashMap<String, FontRenderer>();
-    private FontRenderer fontRenderer = null;
     private ScaledResolution resolution = null;
     private Minecraft mc = null;
     private IResourcePack myPack;
@@ -1169,6 +1167,7 @@ public class MinecraftDisplayer implements IDisplayer {
         FontRenderer font = new FontRenderer(mc.gameSettings, new ResourceLocation(fontTexture), textureManager, false);
         font.onResourceManagerReload(mc.getResourceManager());
         font.setUnicodeFlag(mc.func_152349_b());
+        font.setBidiFlag(mc.getLanguageManager().isCurrentLanguageBidirectional());
 
         fontRenderers.put(fontTexture, font);
         return font;
@@ -1384,25 +1383,7 @@ public class MinecraftDisplayer implements IDisplayer {
                 textureManager = mc.renderEngine;
             } else {
                 textureManager = new SplashTextureManager(mc.getResourceManager());
-
-                mc.fontRenderer = new FontRenderer(
-                        mc.gameSettings,
-                        new ResourceLocation("textures/font/ascii.png"),
-                        textureManager,
-                        false);
-
-                if (mc.gameSettings.language != null) {
-                    mc.fontRenderer.setUnicodeFlag(mc.func_152349_b());
-                    LanguageManager lm = mc.getLanguageManager();
-                    mc.fontRenderer.setBidiFlag(lm.isCurrentLanguageBidirectional());
-                }
-
-                mc.fontRenderer.onResourceManagerReload(mc.getResourceManager());
             }
-        }
-
-        if (fontRenderer != mc.fontRenderer) {
-            fontRenderer = mc.fontRenderer;
         }
 
         resolution = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
