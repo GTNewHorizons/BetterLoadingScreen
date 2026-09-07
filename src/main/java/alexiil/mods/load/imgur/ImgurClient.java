@@ -49,15 +49,13 @@ public class ImgurClient implements AutoCloseable {
         }
     }
 
-    public byte[] fetchImage(String imageId) {
+    public byte[] fetchImage(String imageId) throws IOException {
         // Note that Imgur allows requesting JPG images as PNGs, although the returned image will still be a JPG.
         try (CloseableHttpResponse response = client.execute(new HttpGet("https://i.imgur.com/" + imageId + ".png"))) {
             if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
                 throw new IOException("Failed to fetch image. Server returned " + response.getStatusLine());
 
             return IOUtils.toByteArray(response.getEntity().getContent());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 

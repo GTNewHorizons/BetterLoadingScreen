@@ -6,14 +6,18 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -62,11 +66,10 @@ public class ImgurCacheManager {
         return textureCache.get(location.getResourcePath());
     }
 
-    public void cleanUp() {
+    public synchronized void cleanUp() {
+        cancelSetup = true;
         textureCache.values().forEach(AbstractTexture::deleteGlTexture);
         textureCache.clear();
-
-        cancelSetup = true;
     }
 
     public void setupImgurGallery(Consumer<ResourceLocation> textureLocationConsumer) {
@@ -76,71 +79,86 @@ public class ImgurCacheManager {
                 Files.createDirectory(cacheFolder);
             } catch (IOException e) {
                 BetterLoadingScreen.log.error("Error while creating imgur cache directory", e);
-                return;
             }
         }
 
         List<String> cachedImageIDs = getCachedImageIDs();
-        if (cachedImageIDs == null) return;
-
-        // Load any image that is already cached. This avoids waiting for the imgur api call to finish to get something
-        // rendering
-        loadAnyImageFromDisk(cachedImageIDs, textureLocationConsumer);
+        AtomicBoolean hasCachedGalleryImage = new AtomicBoolean();
 
         CompletableFuture.runAsync(() -> {
+            // Try cached images before contacting Imgur, without blocking startup on disk reads.
+            loadCachedImages(cachedImageIDs, textureLocationConsumer, true);
+            if (cancelSetup) return;
             try (ImgurClient client = OFFLINE_MODE ? null : new ImgurClient(appClientId, requestTimeout)) {
                 Consumer<String> imageHandler = imageID -> {
                     // This will leave behind cached images that are no longer in the gallery
-                    synchronized (cachedImageIDs) {
-                        cachedImageIDs.remove(imageID);
+                    if (!OFFLINE_MODE) {
+                        synchronized (cachedImageIDs) {
+                            cachedImageIDs.remove(imageID);
+                        }
                     }
 
                     if (cancelSetup) return;
 
-                    // Should only be the image that might have been loaded in loadAnyImageFromDisk()
+                    // Skip the first cached image if it has already been published.
                     if (textureCache.containsKey(imageID)) return;
 
                     Path imageFile = getCachedImagePath(imageID);
 
                     try {
-                        if (Files.exists(getCachedImagePath(imageID))) {
-                            // Read from disk
-                            readAndCacheImageFromStream(
-                                    imageID,
-                                    new BufferedInputStream(Files.newInputStream(imageFile), 1024 * 1024),
-                                    false);
-                        } else {
-                            if (OFFLINE_MODE) return;
+                        boolean cachedOnDisk = false;
+                        if (Files.exists(imageFile)) {
+                            try {
+                                cachedOnDisk = readAndCacheImageFromDisk(imageID);
+                            } catch (IOException e) {
+                                if (OFFLINE_MODE) throw e;
+                                BetterLoadingScreen.log.warn("Retrying invalid cached imgur image: " + imageID, e);
+                            }
+                        }
+                        if (!cachedOnDisk) {
+                            if (OFFLINE_MODE || cancelSetup) return;
 
-                            readAndCacheImageFromStream(
+                            cachedOnDisk = readAndCacheImageFromStream(
                                     imageID,
                                     new ByteArrayInputStream(client.fetchImage(imageID)),
                                     true);
                         }
+                        if (cachedOnDisk) hasCachedGalleryImage.set(true);
                     } catch (IOException e) {
                         BetterLoadingScreen.log.error("Error while loading imgur image", e);
                         return;
                     }
 
-                    synchronized (textureLocationConsumer) {
-                        textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
+                    synchronized (this) {
+                        if (!cancelSetup)
+                            textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
                     }
                 };
 
                 if (OFFLINE_MODE) {
                     cachedImageIDs.stream().parallel().forEach(imageHandler);
                 } else {
-                    client.fetchGalleryImageIDs(galleryId, true).stream().parallel().forEach(imageHandler);
+                    List<String> galleryImageIDs = client.fetchGalleryImageIDs(galleryId, true);
+                    // The first published image was decoded from disk before gallery processing began.
+                    hasCachedGalleryImage.set(galleryImageIDs.stream().anyMatch(textureCache::containsKey));
+                    galleryImageIDs.stream().parallel().forEach(imageHandler);
                 }
             } catch (Exception e) {
                 BetterLoadingScreen.log.error("Error while fetching imgur gallery", e);
+                loadCachedImages(cachedImageIDs, textureLocationConsumer, false);
+                throw new CompletionException(e);
             }
         }).thenRunAsync(() -> {
-            if (OFFLINE_MODE) return;
+            if (OFFLINE_MODE || cancelSetup) return;
+            if (!hasCachedGalleryImage.get()) {
+                loadCachedImages(cachedImageIDs, textureLocationConsumer, false);
+                return;
+            }
 
             // Delete cached images that are no longer in the gallery
             try {
                 for (String id : cachedImageIDs) {
+                    if (cancelSetup) return;
                     Files.deleteIfExists(getCachedImagePath(id));
                 }
             } catch (IOException e) {
@@ -149,42 +167,69 @@ public class ImgurCacheManager {
         });
     }
 
-    private void loadAnyImageFromDisk(List<String> cachedImageIDs, Consumer<ResourceLocation> textureLocationConsumer) {
+    private void loadCachedImages(List<String> cachedImageIDs, Consumer<ResourceLocation> textureLocationConsumer,
+            boolean firstOnly) {
         if (cachedImageIDs.isEmpty()) return;
 
-        String imageID = cachedImageIDs.get(ThreadLocalRandom.current().nextInt(cachedImageIDs.size()));
-        try {
-            readAndCacheImageFromDisk(imageID);
-        } catch (IOException e) {
-            BetterLoadingScreen.log.error("Error while loading first cached imgur image", e);
-            return;
-        }
+        int start = ThreadLocalRandom.current().nextInt(cachedImageIDs.size());
+        for (int i = 0; i < cachedImageIDs.size(); i++) {
+            if (cancelSetup) return;
+            String imageID = cachedImageIDs.get((start + i) % cachedImageIDs.size());
+            if (textureCache.containsKey(imageID)) continue;
+            try {
+                readAndCacheImageFromDisk(imageID);
+            } catch (IOException e) {
+                BetterLoadingScreen.log.warn("Skipping unreadable cached imgur image: " + imageID, e);
+                continue;
+            }
 
-        synchronized (textureLocationConsumer) {
-            textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
+            synchronized (this) {
+                if (!cancelSetup) textureLocationConsumer.accept(new ResourceLocation(IMGUR_CACHE_DIR, imageID));
+            }
+            if (firstOnly) return;
         }
     }
 
-    private void readAndCacheImageFromStream(String imageID, InputStream imageStream, boolean saveToDisk)
+    private boolean readAndCacheImageFromStream(String imageID, InputStream imageStream, boolean saveToDisk)
             throws IOException {
-        BufferedImage image = ImageIO.read(imageStream);
-        textureCache.put(imageID, new LateInitDynamicTexture(image, image.getWidth(), image.getHeight()));
-
-        if (saveToDisk && Files.notExists(getCachedImagePath(imageID))) writeImageToCache(imageID, image);
+        BufferedImage image;
+        try (InputStream input = imageStream) {
+            if (cancelSetup) return false;
+            image = ImageIO.read(input);
+        }
+        if (image == null) throw new IOException("Invalid cached or downloaded imgur image: " + imageID);
+        if (cancelSetup) return false;
+        LateInitDynamicTexture texture = new LateInitDynamicTexture(image, image.getWidth(), image.getHeight());
+        if (cancelSetup) return false;
+        boolean cachedOnDisk = !saveToDisk;
+        if (saveToDisk) {
+            try {
+                writeImageToCache(imageID, image);
+                cachedOnDisk = true;
+            } catch (IOException e) {
+                BetterLoadingScreen.log.warn("Unable to cache imgur image on disk: " + imageID, e);
+            }
+        }
+        synchronized (this) {
+            if (cancelSetup) return false;
+            textureCache.put(imageID, texture);
+        }
+        return cachedOnDisk;
     }
 
-    private void readAndCacheImageFromDisk(String imageID) throws IOException {
-        readAndCacheImageFromStream(
+    private boolean readAndCacheImageFromDisk(String imageID) throws IOException {
+        return readAndCacheImageFromStream(
                 imageID,
                 new BufferedInputStream(Files.newInputStream(getCachedImagePath(imageID)), 1024 * 1024),
                 false);
     }
 
     private void writeImageToCache(String imageID, BufferedImage image) throws IOException {
-        ImageIO.write(
-                image,
-                "png",
-                new BufferedOutputStream(Files.newOutputStream(getCachedImagePath(imageID)), 1024 * 1024));
+        try (OutputStream output = new BufferedOutputStream(
+                Files.newOutputStream(getCachedImagePath(imageID)),
+                1024 * 1024)) {
+            if (!ImageIO.write(image, "png", output)) throw new IOException("No PNG writer available");
+        }
     }
 
     private static Path getCachedImagePath(String imageID) {
@@ -197,7 +242,7 @@ public class ImgurCacheManager {
                     .collect(Collectors.toList());
         } catch (IOException e) {
             BetterLoadingScreen.log.error("Error while iterating imgur cache folder", e);
-            return null;
+            return new ArrayList<>();
         }
     }
 }

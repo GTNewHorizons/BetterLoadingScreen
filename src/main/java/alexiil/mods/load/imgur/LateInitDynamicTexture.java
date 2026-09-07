@@ -3,8 +3,9 @@ package alexiil.mods.load.imgur;
 import java.awt.image.BufferedImage;
 
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.client.resources.IResourceManager;
+
+import alexiil.mods.load.SplashTextureManager;
 
 /**
  * This class is basically like {@link net.minecraft.client.renderer.texture.DynamicTexture}, but it doesn't allocate
@@ -12,7 +13,7 @@ import net.minecraft.client.resources.IResourceManager;
  */
 public class LateInitDynamicTexture extends AbstractTexture {
 
-    private final int[] dynamicTextureData;
+    private int[] dynamicTextureData;
     private final int width;
     private final int height;
 
@@ -24,9 +25,10 @@ public class LateInitDynamicTexture extends AbstractTexture {
     }
 
     public void loadTexture(IResourceManager rs) {
-        if (this.glTextureId != -1) return;
+        if (this.dynamicTextureData == null) return;
 
-        TextureUtil.allocateTexture(this.getGlTextureId(), this.width, this.height);
-        TextureUtil.uploadTexture(this.getGlTextureId(), this.dynamicTextureData, this.width, this.height);
+        SplashTextureManager
+                .upload(this.getGlTextureId(), this.dynamicTextureData, this.width, this.height, false, false);
+        this.dynamicTextureData = null;
     }
 }
