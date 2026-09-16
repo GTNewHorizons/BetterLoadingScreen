@@ -731,11 +731,12 @@ public class MinecraftDisplayer implements IDisplayer {
                         contextCurrent = true;
 
                         while (!MinecraftDisplayer.this.splashRenderKillSwitch) {
+                            Display.processMessages();
                             renderProgress(currentText, currentPercent, currentSubText, currentSubPercent);
 
                             fmlMutex.acquireUninterruptibly();
                             try {
-                                Display.update();
+                                Display.update(false);
                             } finally {
                                 fmlMutex.release();
                             }
