@@ -4,8 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 
 import javax.imageio.ImageIO;
 
@@ -25,7 +24,7 @@ import org.lwjgl.opengl.GL12;
 
 public class SplashTextureManager extends TextureManager {
 
-    private final List<ResourceTexture> ownedTextures = new ArrayList<>();
+    private final HashMap<ResourceLocation, ResourceTexture> ownedTextures = new HashMap<>();
 
     public SplashTextureManager(IResourceManager resources) {
         super(resources);
@@ -33,38 +32,69 @@ public class SplashTextureManager extends TextureManager {
 
     @Override
     public void bindTexture(ResourceLocation location) {
-        ITextureObject cached = getTexture(location);
-        if (cached == null) {
-            cached = new ResourceTexture(location);
-            ownedTextures.add((ResourceTexture) cached);
-        }
-        if (cached instanceof ResourceTexture) {
-            ResourceTexture texture = (ResourceTexture) cached;
-            texture.usedThisFrame = true;
-            if (!texture.isLoaded()) loadTexture(location, texture);
+        ITextureObject texture = resolveTexture(location);
+        if (texture instanceof ResourceTexture resourceTexture) {
+            if (!resourceTexture.isLoaded()) loadTexture(location, resourceTexture);
+            resourceTexture.usedThisFrame = true;
         }
         super.bindTexture(location);
     }
 
-    public void bindBackgroundTexture(ResourceLocation location) {
-        bindTexture(location);
+    public boolean bindBackgroundTexture(ResourceLocation location) {
+        ITextureObject texture = resolveTexture(location);
+        if (texture == null) return false;
+
+        if (texture instanceof ResourceTexture resourceTexture) {
+            if (!resourceTexture.isLoaded() && !loadTexture(location, resourceTexture)) {
+                return false;
+            }
+
+            resourceTexture.usedThisFrame = true;
+            resourceTexture.background = true;
+        }
+
+        super.bindTexture(location);
+        return true;
+    }
+
+    private ITextureObject resolveTexture(ResourceLocation location) {
         ITextureObject texture = getTexture(location);
-        if (texture instanceof ResourceTexture) ((ResourceTexture) texture).background = true;
+
+        if (texture instanceof ResourceTexture) {
+            return texture;
+        }
+
+        if (texture == null) {
+            ResourceTexture resourceTexture = new ResourceTexture(location);
+            ownedTextures.put(location, resourceTexture);
+            return resourceTexture;
+        }
+
+        // During a resource reload, a splash texture can temporarily fail to load.
+        // Vanilla replaces it with missingTexture, so recover our owned texture for a retry.
+        if (texture == TextureUtil.missingTexture) {
+            return ownedTextures.get(location);
+        }
+
+        // Something else owns this location, e.g. an Imgur texture.
+        return texture;
     }
 
     public void beginFrame() {
-        ownedTextures.forEach(texture -> texture.usedThisFrame = false);
+        ownedTextures.values().forEach(texture -> texture.usedThisFrame = false);
     }
 
     public void endFrame() {
         // Only evict resource backgrounds; shared UI textures and Imgur textures keep their owners.
-        for (ResourceTexture texture : ownedTextures) {
-            if (texture.background && !texture.usedThisFrame) texture.deleteGlTexture();
+        for (ResourceTexture texture : ownedTextures.values()) {
+            if (texture.background && !texture.usedThisFrame) {
+                texture.deleteGlTexture();
+            }
         }
     }
 
     public void close() {
-        ownedTextures.forEach(AbstractTexture::deleteGlTexture);
+        ownedTextures.values().forEach(AbstractTexture::deleteGlTexture);
         ownedTextures.clear();
     }
 
@@ -137,7 +167,7 @@ public class SplashTextureManager extends TextureManager {
             try {
                 metadata = (TextureMetadataSection) resource.getMetadata("texture");
             } catch (RuntimeException e) {
-                BetterLoadingScreen.log.warn("Failed reading texture metadata: " + location, e);
+                BetterLoadingScreen.log.warn("Failed reading texture metadata: {}", location, e);
             }
             int width = image.getWidth();
             int height = image.getHeight();

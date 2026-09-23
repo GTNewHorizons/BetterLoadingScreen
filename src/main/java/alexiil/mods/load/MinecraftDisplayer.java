@@ -973,8 +973,7 @@ public class MinecraftDisplayer implements IDisplayer {
         String nextBackground = randomBackground(background);
         nextBackgroundChangeMillis = now + changeFrequency * 1000L;
 
-        if (!threadedRendering || blendTimeMillis <= 0) {
-            background = nextBackground;
+        if (nextBackground.equals(background)) {
             return;
         }
 
@@ -1270,50 +1269,63 @@ public class MinecraftDisplayer implements IDisplayer {
             case STATIC:
             case STATIC_BLENDED: {
                 if (blending && render.type == EType.STATIC_BLENDED) {
-                    float blendAlpha = Float
-                            .max(0.f, 1.0f - (float) (System.currentTimeMillis() - blendStartMillis) / blendTimeMillis);
+                    if (bindTexture(render.resourceLocation, true)) {
+                        drawRect(
+                                startX,
+                                startY,
+                                PWidth,
+                                PHeight,
+                                render.texture.x,
+                                render.texture.y,
+                                render.texture.width,
+                                render.texture.height);
+                    }
 
-                    if (blendAlpha <= 0.f) {
+                    if (!bindTexture(newBlendImage, true)) {
+                        // Start the fade from the beginning once the texture becomes available.
+                        blendStartMillis = System.currentTimeMillis();
+                        break;
+                    }
+
+                    final float blendAlpha;
+                    if (!threadedRendering || blendTimeMillis <= 0) {
+                        blendAlpha = 0F;
+                    } else {
+                        blendAlpha = Float.max(
+                                0F,
+                                1F - (float) (System.currentTimeMillis() - blendStartMillis) / blendTimeMillis);
+                    }
+
+                    if (blendAlpha <= 0F) {
                         blending = false;
                         background = newBlendImage;
                     }
 
-                    GL11.glColor4f(render.getRed(), render.getGreen(), render.getBlue(), 1F);
-                    bindTexture(render.resourceLocation, true);
-                    drawRect(
-                            startX,
-                            startY,
-                            PWidth,
-                            PHeight,
-                            render.texture.x,
-                            render.texture.y,
-                            render.texture.width,
-                            render.texture.height);
-
-                    GL11.glColor4f(1, 1, 1, 1.f - blendAlpha);
-                    bindTexture(newBlendImage, true);
+                    GL11.glColor4f(1, 1, 1, 1F - blendAlpha);
                     drawRect(startX, startY, PWidth, PHeight, 0, 0, 256, 256);
                 } else {
-                    GL11.glColor4f(render.getRed(), render.getGreen(), render.getBlue(), 1F);
-                    bindTexture(render.resourceLocation, render.type == EType.STATIC_BLENDED);
-                    drawRect(
-                            startX,
-                            startY,
-                            PWidth,
-                            PHeight,
-                            render.texture.x,
-                            render.texture.y,
-                            render.texture.width,
-                            render.texture.height);
+                    if (bindTexture(render.resourceLocation, render.type == EType.STATIC_BLENDED)) {
+                        drawRect(
+                                startX,
+                                startY,
+                                PWidth,
+                                PHeight,
+                                render.texture.x,
+                                render.texture.y,
+                                render.texture.width,
+                                render.texture.height);
+                    }
                 }
                 break;
             }
             case CLEAR_COLOUR: // Ignore this, as its set elsewhere
                 break;
         }
+
+        GL11.glColor4f(1F, 1F, 1F, 1F);
     }
 
-    private void bindTexture(String resourceLocation, boolean backgroundTexture) {
+    private boolean bindTexture(String resourceLocation, boolean backgroundTexture) {
         ResourceLocation res = new ResourceLocation(resourceLocation);
 
         // We cannot go through the default texture loader, because it can't load from the file system
@@ -1323,12 +1335,16 @@ public class MinecraftDisplayer implements IDisplayer {
             try {
                 textureManager.loadTexture(res, texture);
             } catch (Exception e) {
-                BetterLoadingScreen.log.error("Failed to load imgur texture: " + res.getResourcePath(), e);
+                BetterLoadingScreen.log.error("Failed to load imgur texture: {}", res.getResourcePath(), e);
             }
         }
 
-        if (backgroundTexture) textureManager.bindBackgroundTexture(res);
-        else textureManager.bindTexture(res);
+        if (backgroundTexture) {
+            return textureManager.bindBackgroundTexture(res);
+        } else {
+            textureManager.bindTexture(res);
+            return true;
+        }
     }
 
     public void drawString(FontRenderer font, String text, int x, int y, int colour) {
