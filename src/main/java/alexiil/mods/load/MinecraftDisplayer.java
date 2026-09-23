@@ -723,6 +723,7 @@ public class MinecraftDisplayer implements IDisplayer {
                 @Override
                 public void run() {
                     boolean contextCurrent = false;
+                    boolean firstFrame = true;
                     try {
                         Field f = SplashProgress.class.getDeclaredField("mutex");
                         f.setAccessible(true);
@@ -731,7 +732,9 @@ public class MinecraftDisplayer implements IDisplayer {
                         contextCurrent = true;
 
                         while (!MinecraftDisplayer.this.splashRenderKillSwitch) {
-                            Display.processMessages();
+                            // Don't process window events before presenting the first frame,
+                            // as doing so would expose the window with an empty framebuffer
+                            if (!firstFrame) Display.processMessages();
                             renderProgress(currentText, currentPercent, currentSubText, currentSubPercent);
 
                             fmlMutex.acquireUninterruptibly();
@@ -740,6 +743,9 @@ public class MinecraftDisplayer implements IDisplayer {
                             } finally {
                                 fmlMutex.release();
                             }
+
+                            if (firstFrame) Display.processMessages();
+                            firstFrame = false;
                             Display.sync(60);
                         }
                         resetGlState();
